@@ -1,0 +1,8 @@
+src
+e2e
+size
+coverage
+demo
+.github
+*.config.ts
+.size-limit.js

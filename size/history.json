@@ -1,0 +1,11 @@
+[
+  {
+    "name": "core + history",
+    "path": ["dist/index.js", "dist/modules/history.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/history.js": "{ history }"
+    },
+    "limit": "5100 B"
+  }
+]

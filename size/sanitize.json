@@ -1,0 +1,8 @@
+[
+  {
+    "name": "sanitize",
+    "path": "dist/sanitize/index.js",
+    "import": "{ sanitize }",
+    "limit": "1250 B"
+  }
+]

@@ -1,0 +1,15 @@
+node_modules
+dist
+demo-dist
+coverage
+*.local
+*.tgz
+.npmrc
+*.tsbuildinfo
+.vscode
+.idea
+.DS_Store
+.claude
+test-results
+playwright-report
+playwright/.cache

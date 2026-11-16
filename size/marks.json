@@ -1,0 +1,12 @@
+[
+  {
+    "name": "core + bold + italic",
+    "path": ["dist/index.js", "dist/modules/bold.js", "dist/modules/italic.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/bold.js": "{ bold }",
+      "dist/modules/italic.js": "{ italic }"
+    },
+    "limit": "5100 B"
+  }
+]

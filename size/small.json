@@ -1,0 +1,29 @@
+[
+  {
+    "name": "core + underline",
+    "path": ["dist/index.js", "dist/modules/underline.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/underline.js": "{ underline }"
+    },
+    "limit": "5150 B"
+  },
+  {
+    "name": "core + placeholder",
+    "path": ["dist/index.js", "dist/modules/placeholder.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/placeholder.js": "{ placeholder }"
+    },
+    "limit": "5000 B"
+  },
+  {
+    "name": "core + characterCount",
+    "path": ["dist/index.js", "dist/modules/character-count.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/character-count.js": "{ characterCount }"
+    },
+    "limit": "5000 B"
+  }
+]

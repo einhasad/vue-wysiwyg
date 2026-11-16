@@ -1,0 +1,9 @@
+[
+  { "name": "core", "path": "dist/index.js", "import": "{ createEditor }", "limit": "4500 B" },
+  {
+    "name": "normalize",
+    "path": "dist/normalize/index.js",
+    "import": "{ normalizeHTML, isEmptyHTML }",
+    "limit": "2300 B"
+  }
+]
