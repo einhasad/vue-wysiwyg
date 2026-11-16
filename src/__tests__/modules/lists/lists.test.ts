@@ -43,6 +43,28 @@ describe('lists module', () => {
     ])
   })
 
+  it.each([
+    [['ul'], ['bulletList'], '<ul><li>a</li></ul><ul><li>b</li></ul>'],
+    [['ol'], ['orderedList'], '<ol><li>a</li></ol><ol><li>b</li></ol>'],
+    [['ol', 'ul'], ['orderedList', 'bulletList'], '<ul><li>a</li></ul><ol><li>b</li></ol>'],
+  ] as const)('offers only the %j list types', (types, commands, html) => {
+    const editor = mountEditor({
+      content: '<ul><li>a</li></ul><ol><li>b</li></ol>',
+      modules: [lists({ types })],
+    })
+    expect(editor.commands).toEqual([...commands, 'indentList', 'outdentList'])
+    expect(editor.getHTML()).toBe(html)
+    expect([...editor.schema.tags.keys()]).toEqual(['p', 'br', ...types, 'li'])
+  })
+
+  it('toggles the only list type and leaves the absent one unavailable', () => {
+    const editor = mountEditor({ content: '<p>a</p>', modules: [lists({ types: ['ol'] })] })
+    caretAt(editor, 'a')
+    expect(editor.can('bulletList')).toBe(false)
+    expect(editor.exec('orderedList')).toBe(true)
+    expect(editor.getHTML()).toBe('<ol><li>a</li></ol>')
+  })
+
   it('wraps a stray li in ul through normalize', () => {
     expect(listEditor('<li>a</li>').getHTML()).toBe('<ul><li>a</li></ul>')
   })
@@ -145,6 +167,30 @@ describe('lists module', () => {
       selectTexts(editor, 'a', 'b')
       editor.exec('orderedList')
       expect(editor.getHTML()).toBe('<ol><li>a</li><li>b</li></ol>')
+    })
+
+    it('keeps a heading when its list item is toggled back', () => {
+      const editor = listEditor('<h2>t</h2><p>p</p>')
+      selectTexts(editor, 't', 'p')
+      editor.exec('bulletList')
+      expect(editor.getHTML()).toBe('<ul><li>t</li><li>p</li></ul>')
+      editor.exec('bulletList')
+      expect(editor.getHTML()).toBe('<h2>t</h2><p>p</p>')
+      expect(selectedText()).toBe('tp')
+    })
+
+    it('keeps a heading when its item leaves the list by Shift-Tab or Enter', () => {
+      const editor = listEditor('<h3>t</h3><h2><br></h2>')
+      selectTexts(editor, 't', 't')
+      editor.exec('orderedList')
+      keyDown(editor, { key: 'Tab', shiftKey: true })
+      expect(editor.getHTML()).toBe('<h3>t</h3><h2><br></h2>')
+      select(editor.root.lastChild as Node, 0)
+      editor.exec('orderedList')
+      expect(editor.getHTML()).toBe('<h3>t</h3><ol><li><br></li></ol>')
+      select(editor.root.querySelector('li') as Node, 0)
+      expect(beforeInput(editor, 'insertParagraph').defaultPrevented).toBe(true)
+      expect(editor.getHTML()).toBe('<h3>t</h3><h2><br></h2>')
     })
 
     it('lifts a nested item all the way to a paragraph', () => {
@@ -348,11 +394,35 @@ describe('lists module', () => {
       expect(editor.getHTML()).toBe('<ul><li>a<ol><li>b</li></ol><ul><li>c</li></ul></li></ul>')
     })
 
-    it('keeps Tab on the first item without changing it', () => {
+    it('leaves Tab on the first item to the browser so focus can leave the editor', () => {
       const editor = listEditor('<ul><li>a</li></ul>')
       caretAt(editor, 'a')
-      expect(keyDown(editor, { key: 'Tab' }).defaultPrevented).toBe(true)
+      expect(keyDown(editor, { key: 'Tab' }).defaultPrevented).toBe(false)
+      expect(editor.can('indentList')).toBe(false)
+      expect(editor.exec('indentList')).toBe(false)
       expect(editor.getHTML()).toBe('<ul><li>a</li></ul>')
+    })
+
+    it('nests only the selected items that have a previous item', () => {
+      const editor = listEditor('<ul><li>a</li><li>b</li></ul>')
+      selectTexts(editor, 'a', 'b')
+      expect(keyDown(editor, { key: 'Tab' }).defaultPrevented).toBe(true)
+      expect(editor.getHTML()).toBe('<ul><li>a<ul><li>b</li></ul></li></ul>')
+    })
+
+    it('leaves Tab to the browser when no selected item can be nested', () => {
+      const editor = listEditor('<ul><li>a<ul><li>b</li></ul></li></ul>')
+      selectTexts(editor, 'a', 'b')
+      expect(keyDown(editor, { key: 'Tab' }).defaultPrevented).toBe(false)
+      expect(editor.getHTML()).toBe('<ul><li>a<ul><li>b</li></ul></li></ul>')
+    })
+
+    it('leaves Shift-Tab on a paragraph after an outdent to the browser', () => {
+      const editor = listEditor('<ul><li>a</li></ul>')
+      caretAt(editor, 'a')
+      expect(keyDown(editor, { key: 'Tab', shiftKey: true }).defaultPrevented).toBe(true)
+      expect(editor.getHTML()).toBe('<p>a</p>')
+      expect(keyDown(editor, { key: 'Tab', shiftKey: true }).defaultPrevented).toBe(false)
     })
 
     it('nests every selected item once', () => {

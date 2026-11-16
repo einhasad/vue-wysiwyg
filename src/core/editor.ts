@@ -15,6 +15,9 @@ import type {
   EditorSelection,
 } from './types.js'
 
+const INTERNAL_DRAG_TYPE = 'x-wysiwyg'
+const OWNED_ATTRIBUTES =
+  'role aria-multiline aria-readonly aria-label contenteditable tabindex style'.split(' ')
 const TRANSFER_INPUT = /^insertFrom(Paste|PasteAsQuotation|Drop|Yank)$/
 const HOOKED_INPUT = /^(insertText|insertParagraph|insertLineBreak|delete.*)$/
 const ROUTED_INPUT: Readonly<Record<string, string | undefined>> = {
@@ -25,6 +28,7 @@ const ROUTED_INPUT: Readonly<Record<string, string | undefined>> = {
 
 export function createEditor(options: EditorOptions = {}): Editor {
   const root = options.element ?? document.createElement('div')
+  const initialAttributes = new Map(OWNED_ATTRIBUTES.map((name) => [name, root.getAttribute(name)]))
   const ownerDocument = root.ownerDocument
   const modules = [...(options.modules ?? [])].sort(
     (first, second) => (second.priority ?? 0) - (first.priority ?? 0),
@@ -37,6 +41,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   const listeners = new Map<EditorEvent, Set<EditorListener>>()
   const cleanups: (() => void)[] = []
   let readonly = false
+  let destroyed = false
   let composing = false
   let internalDrag = false
   let frame = 0
@@ -81,18 +86,20 @@ export function createEditor(options: EditorOptions = {}): Editor {
     )
   }
 
+  const selectionInRoot = (): Selection | null => {
+    const current = domSelection()
+    return current && root.contains(current.anchorNode) && root.contains(current.focusNode)
+      ? current
+      : null
+  }
+
   const selection: EditorSelection = {
-    range() {
-      const current = domSelection()
-      return current?.rangeCount && root.contains(current.anchorNode) ? current.getRangeAt(0) : null
-    },
+    range: () => selectionInRoot()?.getRangeAt(0) ?? null,
     save() {
-      const current = domSelection()
-      return current?.anchorNode &&
-        root.contains(current.anchorNode) &&
-        root.contains(current.focusNode)
+      const current = selectionInRoot()
+      return current
         ? {
-            anchor: pathOf(root, current.anchorNode, current.anchorOffset),
+            anchor: pathOf(root, current.anchorNode as Node, current.anchorOffset),
             focus: pathOf(root, current.focusNode as Node, current.focusOffset),
           }
         : null
@@ -105,8 +112,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   }
 
   const normalize = (): void => {
-    const current = domSelection() as Selection
-    const { anchorNode, anchorOffset, focusNode, focusOffset } = current
+    const { anchorNode, anchorOffset, focusNode, focusOffset } = domSelection() ?? ({} as Selection)
     const path = selection.save()
     if (normalizeElement(root, schema) && path) {
       if (root.contains(anchorNode) && root.contains(focusNode)) {
@@ -126,7 +132,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   }
 
   const transact = (mutate: () => void): void => {
-    if (!readonly) {
+    if (!readonly && !destroyed) {
       emit('beforeChange')
       mutate()
       commit()
@@ -176,7 +182,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   }
 
   const exec = (name: string, arg?: unknown): boolean => {
-    if (!can(name)) {
+    if (destroyed || !can(name)) {
       return false
     }
     emit('beforeChange')
@@ -252,6 +258,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
       insertTransfer(event.clipboardData)
     },
     drop(event: DragEvent) {
+      internalDrag = !!event.dataTransfer?.types.includes(INTERNAL_DRAG_TYPE)
       if (!internalDrag) {
         event.preventDefault()
         const caret = (ownerDocument as Partial<Document>).caretPositionFromPoint?.(
@@ -264,11 +271,8 @@ export function createEditor(options: EditorOptions = {}): Editor {
         insertTransfer(event.dataTransfer)
       }
     },
-    dragstart() {
-      internalDrag = true
-    },
-    dragend() {
-      internalDrag = false
+    dragstart(event: DragEvent) {
+      event.dataTransfer?.setData(INTERNAL_DRAG_TYPE, '1')
     },
     focus(event: FocusEvent) {
       emit('focus', event)
@@ -299,15 +303,20 @@ export function createEditor(options: EditorOptions = {}): Editor {
     },
     getHTML: () => (isEmptyNode(root) ? '' : root.innerHTML),
     setHTML(html, setOptions) {
+      if (destroyed) {
+        return
+      }
       if (setOptions?.history) {
         emit('beforeChange')
       }
+      const path = selection.save()
       root.replaceChildren(sanitizeInput(html))
       commit()
+      selection.restore(path)
     },
     getValue: () => format.stringify(editor.getHTML()),
     setValue(value, setOptions) {
-      editor.setHTML(format.parse(value), setOptions)
+      editor.setHTML(format.parse(value, schema), setOptions)
     },
     isEmpty: () => isEmptyNode(root),
     textLength: () => root.textContent.length,
@@ -316,9 +325,19 @@ export function createEditor(options: EditorOptions = {}): Editor {
     isActive: (name, arg) => commands.get(name)?.isActive?.(editor, arg as never) ?? false,
     transact,
     setReadonly(value) {
+      if (destroyed) {
+        return
+      }
       readonly = value
       root.contentEditable = String(!value)
       root.setAttribute('aria-readonly', String(value))
+      if (initialAttributes.get('tabindex') === null) {
+        if (value) {
+          root.tabIndex = 0
+        } else {
+          root.removeAttribute('tabindex')
+        }
+      }
       emit('readonly')
     },
     focus() {
@@ -330,6 +349,10 @@ export function createEditor(options: EditorOptions = {}): Editor {
       return () => set.delete(listener)
     },
     destroy() {
+      if (destroyed) {
+        return
+      }
+      destroyed = true
       emit('destroy')
       cancelAnimationFrame(frame)
       for (const [type, handler] of Object.entries(handlers)) {
@@ -340,7 +363,13 @@ export function createEditor(options: EditorOptions = {}): Editor {
         cleanup()
       }
       listeners.clear()
-      root.removeAttribute('contenteditable')
+      for (const [name, value] of initialAttributes) {
+        if (value === null) {
+          root.removeAttribute(name)
+        } else {
+          root.setAttribute(name, value)
+        }
+      }
     },
   }
 
@@ -348,10 +377,12 @@ export function createEditor(options: EditorOptions = {}): Editor {
   root.setAttribute('aria-multiline', 'true')
   if (options.label) {
     root.setAttribute('aria-label', options.label)
+  } else if (!root.hasAttribute('aria-label')) {
+    root.setAttribute('aria-label', 'Rich text editor')
   }
   root.style.whiteSpace = 'pre-wrap'
   editor.setReadonly(!!options.readonly)
-  root.replaceChildren(sanitizeInput(format.parse(options.content ?? '')))
+  root.replaceChildren(sanitizeInput(format.parse(options.content ?? '', schema)))
   normalizeElement(root, schema)
   for (const [type, handler] of Object.entries(handlers)) {
     root.addEventListener(type, handler as EventListener)

@@ -9,6 +9,7 @@ import {
   outdent,
   retagTracked,
   selectedLines,
+  toItem,
 } from '../shared/blocks.js'
 
 declare module '../core/types.js' {
@@ -58,7 +59,7 @@ const toggleList = (editor: Editor, tag: string): boolean => {
         } else if (!isItem(line)) {
           const wrapper = line.ownerDocument.createElement(tag)
           line.before(wrapper)
-          wrapper.append(retagTracked(line, 'li'))
+          wrapper.append(toItem(line))
         } else if (list.localName !== tag) {
           retagTracked(list, tag)
         }
@@ -85,14 +86,17 @@ const listCommand = (tag: string): CommandSpec => ({
   isActive: (editor: Editor) => isLineActive(editor, (line) => inList(line, tag)),
 })
 
-const itemsCommand = (move: (item: Element, editor: Editor) => unknown): CommandSpec => ({
+const itemsCommand = (
+  move: (item: Element, editor: Editor) => unknown,
+  canMove: (item: Element) => unknown = isItem,
+): CommandSpec => ({
   run: (editor: Editor) =>
     keepSelection(editor, () => {
       for (const item of topItems(editor)) {
         move(item, editor)
       }
     }),
-  isEnabled: (editor: Editor) => selectedLines(editor).some(isItem),
+  isEnabled: (editor: Editor) => topItems(editor).some(canMove),
 })
 
 const isAtStart = (range: Range, line: Element): boolean => {
@@ -119,19 +123,30 @@ const exitItem = (editor: Editor, inputType: string): boolean => {
   return true
 }
 
-export const lists = (): Module => ({
+export type ListType = 'ul' | 'ol'
+
+export interface ListsOptions {
+  readonly types?: readonly ListType[]
+}
+
+const LIST_TYPES: readonly ListType[] = ['ul', 'ol']
+
+const LIST_COMMANDS = { ul: 'bulletList', ol: 'orderedList' } as const
+
+export const lists = ({ types = LIST_TYPES }: ListsOptions = {}): Module => ({
   name: 'lists',
   schema: {
     tags: {
-      ul: { kind: 'list', attrs: [] },
-      ol: { kind: 'list', attrs: [] },
+      ...Object.fromEntries(types.map((tag) => [tag, { kind: 'list', attrs: [] }])),
       li: { kind: 'item', attrs: [] },
     },
+    rename: Object.fromEntries(
+      LIST_TYPES.map((tag) => [tag, types.includes(tag) ? tag : (types[0] as ListType)]),
+    ),
   },
   commands: {
-    bulletList: listCommand('ul'),
-    orderedList: listCommand('ol'),
-    indentList: itemsCommand(indent),
+    ...Object.fromEntries(types.map((tag) => [LIST_COMMANDS[tag], listCommand(tag)])),
+    indentList: itemsCommand(indent, (item) => item.previousElementSibling),
     outdentList: itemsCommand((item, editor) => outdent(editor, item)),
   },
   onBeforeInput: (event, editor) => exitItem(editor, event.inputType),

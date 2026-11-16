@@ -1,0 +1,24 @@
+[
+  {
+    "name": "all",
+    "path": [
+      "dist/index.js",
+      "dist/sanitize/index.js",
+      "dist/normalize/index.js",
+      "dist/markdown/index.js",
+      "dist/modules/index.js",
+      "dist/vue/index.js",
+      "dist/theme/index.js"
+    ],
+    "import": {
+      "dist/index.js": "{ createEditor, htmlFormat, defineModule }",
+      "dist/sanitize/index.js": "{ sanitize, sanitizeToFragment, createSchema, safeUrl }",
+      "dist/normalize/index.js": "{ normalizeHTML, isEmptyHTML, normalizeElement, isEmptyNode }",
+      "dist/markdown/index.js": "{ mdToHtml, htmlToMd, markdownFormat }",
+      "dist/modules/index.js": "{ bold, italic, underline, heading, lists, link, linkHref, history, paste, placeholder, characterCount, markdownShortcuts, starterKit }",
+      "dist/vue/index.js": "{ useEditor, useEditorState, EditorContent, WysiwygEditor }",
+      "dist/theme/index.js": "{ EditorToolbar, LinkPopover, defaultMessages }"
+    },
+    "limit": "14570 B"
+  }
+]

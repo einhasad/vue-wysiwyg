@@ -1,0 +1,20 @@
+[
+  {
+    "name": "core + link",
+    "path": ["dist/index.js", "dist/modules/link.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/link.js": "{ link }"
+    },
+    "limit": "5910 B"
+  },
+  {
+    "name": "core + paste",
+    "path": ["dist/index.js", "dist/modules/paste.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/paste.js": "{ paste }"
+    },
+    "limit": "6060 B"
+  }
+]

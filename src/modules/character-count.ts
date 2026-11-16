@@ -6,8 +6,8 @@ export interface CharacterCountOptions {
 }
 
 export interface CharacterCountModule extends Module {
-  count(): number
-  words(): number
+  count(editor?: Editor): number
+  words(editor?: Editor): number
 }
 
 const LINE_END = /[\r\n]/
@@ -26,16 +26,16 @@ export const characterCount = ({
   return {
     name: 'characterCount',
     priority: -1,
-    count: () => bound?.textLength() ?? 0,
-    words() {
+    count: (editor = bound) => editor?.textLength() ?? 0,
+    words(editor = bound) {
       let text = ''
-      if (bound) {
-        const walker = bound.root.ownerDocument.createTreeWalker(bound.root, 5)
+      if (editor) {
+        const walker = editor.root.ownerDocument.createTreeWalker(editor.root, 5)
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
           text +=
             node.nodeType === 3
               ? (node as Text).data
-              : bound.schema.tags.get((node as Element).localName)?.kind === 'inline'
+              : editor.schema.tags.get((node as Element).localName)?.kind === 'inline'
                 ? ''
                 : ' '
         }
@@ -94,7 +94,9 @@ export const characterCount = ({
       root.addEventListener('compositionstart', remember)
       root.addEventListener('compositionend', revertOverflow)
       return () => {
-        bound = undefined
+        if (bound === editor) {
+          bound = undefined
+        }
         root.removeEventListener('compositionstart', remember)
         root.removeEventListener('compositionend', revertOverflow)
       }

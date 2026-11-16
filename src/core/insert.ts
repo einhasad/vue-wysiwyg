@@ -1,11 +1,7 @@
 import type { Schema } from './types.js'
 import { isEmptyNode } from '../normalize/empty.js'
+import { isBlockLevel } from '../sanitize/schema.js'
 import { nodeLength } from './selection.js'
-
-const isBlockLevel = (schema: Schema, node: Node): boolean => {
-  const kind = schema.tags.get((node as Element).localName)?.kind
-  return kind === 'block' || kind === 'list' || kind === 'item'
-}
 
 const removeIfEmpty = (node: ChildNode | null): void => {
   if (node && isEmptyNode(node as Element)) {

@@ -61,6 +61,19 @@ const liftOut = (text: Text, mark: Element): void => {
 
 export type MarkAttributes = Readonly<Record<string, string>>
 
+type StoredMarks = Map<string, MarkAttributes | null>
+
+const storedMarks = new WeakMap<Editor, readonly [Node, number, StoredMarks]>()
+
+const storedAt = (editor: Editor, range: Range | null): StoredMarks | undefined => {
+  const [node, offset, marks] = storedMarks.get(editor) ?? []
+  if (range?.collapsed && range.startContainer === node && range.startOffset === offset) {
+    return marks
+  }
+  storedMarks.delete(editor)
+  return undefined
+}
+
 const applyAttributes = (element: Element, attributes: MarkAttributes): Element => {
   for (const [name, value] of Object.entries(attributes)) {
     element.setAttribute(name, value)
@@ -74,6 +87,10 @@ export function activeMark(editor: Editor, tag: string): Element | undefined {
 
 export function isMarkActive(editor: Editor, tag: string): boolean {
   const range = editor.selection.range()
+  const stored = storedAt(editor, range)?.get(tag)
+  if (stored !== undefined) {
+    return !!stored
+  }
   const nodes: Node[] = range
     ? range.collapsed
       ? [range.startContainer]
@@ -127,7 +144,45 @@ export function setMarkAtCaret(
 }
 
 export function toggleMark(editor: Editor, tag: string, attributes: MarkAttributes = {}): boolean {
-  return setMark(editor, tag, isMarkActive(editor, tag) ? null : attributes)
+  const range = editor.selection.range()
+  const next = isMarkActive(editor, tag) ? null : attributes
+  if (range?.collapsed) {
+    const marks = storedAt(editor, range) ?? new Map<string, MarkAttributes | null>()
+    storedMarks.set(editor, [range.startContainer, range.startOffset, marks.set(tag, next)])
+    return true
+  }
+  return setMark(editor, tag, next)
+}
+
+export function typeWithStoredMarks(event: InputEvent, editor: Editor): boolean {
+  const range = editor.selection.range()
+  const marks = storedAt(editor, range)
+  const { data } = event
+  if (event.inputType !== 'insertText' || !data || !marks) {
+    return false
+  }
+  storedMarks.delete(editor)
+  editor.transact(() => {
+    const text = editor.root.ownerDocument.createTextNode(data)
+    ;(range as Range).insertNode(text)
+    for (const sibling of [text.previousSibling, text.nextSibling]) {
+      if (sibling && !sibling.textContent && (sibling.nodeType === 3 || !sibling.nextSibling)) {
+        sibling.remove()
+      }
+    }
+    for (const [tag, attributes] of marks) {
+      const mark = markAncestor(editor, text, tag)
+      if (mark && !attributes) {
+        liftOut(text, mark)
+      } else if (attributes && !mark) {
+        const wrapper = applyAttributes(text.ownerDocument.createElement(tag), attributes)
+        text.replaceWith(wrapper)
+        wrapper.append(text)
+      }
+    }
+    editor.root.ownerDocument.getSelection()?.collapse(text, data.length)
+  })
+  return true
 }
 
 export const markModule = (
@@ -141,6 +196,11 @@ export const markModule = (
   schema: { tags: { [tag]: { kind: 'inline', attrs: [] } }, rename: alias ? { [alias]: tag } : {} },
   keys: { [key]: name },
   inputTypes: { [inputType]: name },
+  onBeforeInput: typeWithStoredMarks,
+  setup: (editor: Editor) =>
+    editor.on('selection', () => {
+      storedAt(editor, editor.selection.range())
+    }),
   commands: {
     [name]: {
       run: (editor: Editor) => toggleMark(editor, tag),

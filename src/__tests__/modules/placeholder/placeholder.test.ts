@@ -57,14 +57,30 @@ describe('placeholder module', () => {
     expect(editor.root.classList.contains('is-empty')).toBe(true)
   })
 
-  it('keeps the class while composing and updates after compositionend', () => {
+  it('hides the placeholder while composing and checks again after compositionend', () => {
     const editor = placeholderEditor('', { text: 'x' })
     dispatch(editor.root, 'compositionstart')
+    expect(editor.root.classList.contains('is-empty')).toBe(false)
     firstBlock(editor).prepend('か')
     dispatch(editor.root, 'input', { isComposing: true })
-    expect(editor.root.classList.contains('is-empty')).toBe(true)
+    expect(editor.root.classList.contains('is-empty')).toBe(false)
     dispatch(editor.root, 'compositionend')
     expect(editor.root.classList.contains('is-empty')).toBe(false)
+  })
+
+  it('shows the placeholder again when a composition ends without text', () => {
+    const editor = placeholderEditor('', { text: 'x' })
+    dispatch(editor.root, 'compositionstart')
+    dispatch(editor.root, 'compositionend')
+    expect(editor.root.classList.contains('is-empty')).toBe(true)
+  })
+
+  it('stops hiding on compositionstart after destroy', () => {
+    const editor = placeholderEditor('', { text: 'x' })
+    editor.destroy()
+    editor.root.classList.add('is-empty')
+    dispatch(editor.root, 'compositionstart')
+    expect(editor.root.classList.contains('is-empty')).toBe(true)
   })
 
   it('supports a custom empty class', () => {

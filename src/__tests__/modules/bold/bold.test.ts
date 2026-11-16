@@ -101,7 +101,9 @@ describe('bold module', () => {
     expect(editor.isActive('bold')).toBe(true)
     select(textOf(editor, [0, 0]), 1)
     expect(editor.isActive('bold')).toBe(false)
-    expect(editor.exec('bold')).toBe(false)
+    expect(editor.exec('bold')).toBe(true)
+    expect(editor.isActive('bold')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a<strong>b</strong></p>')
   })
 
   it('does nothing without a selection', () => {

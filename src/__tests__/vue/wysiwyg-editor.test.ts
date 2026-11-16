@@ -1,6 +1,6 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { KeepAlive, defineComponent, h, nextTick, ref, type Ref } from 'vue'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import type { Editor, Format } from '../../core/types.js'
 import { bold } from '../../modules/bold.js'
 import { WysiwygEditor } from '../../vue/wysiwyg-editor.js'
@@ -108,15 +108,27 @@ describe('WysiwygEditor', () => {
     await nextTick()
     expect(setValue).toHaveBeenCalledOnce()
     expect(root().innerHTML).toBe('<p>b</p>')
-    expect(model.value).toBe('<p>b</p>')
+    expect(model.value).toBe('<p>b</p><script>alert(1)</script>')
   })
 
-  it('normalizes an external value and syncs it back to the model', async () => {
+  it('normalizes an external value without emitting it back to the model', async () => {
     const { model, root } = await mountWithModel('')
     model.value = 'plain'
     await nextTick()
     expect(root().innerHTML).toBe('<p>plain</p>')
-    expect(model.value).toBe('<p>plain</p>')
+    expect(model.value).toBe('plain')
+  })
+
+  it('emits nothing on load or after an external value until the user edits', async () => {
+    const wrapper = await mountEditor({ modelValue: '<b>a</b>', modules: [bold()], name: 'body' })
+    await wrapper.setProps({ modelValue: '<p><b>loaded</b></p>' })
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe(
+      '<p><strong>loaded</strong></p>',
+    )
+    const root = rootOf(wrapper)
+    typeInto(root, root.querySelector('strong')?.firstChild as Text, 'loaded!')
+    expect(wrapper.emitted('update:modelValue')).toEqual([['<p><strong>loaded!</strong></p>']])
   })
 
   it('applies only the last of rapid external updates', async () => {
@@ -157,6 +169,27 @@ describe('WysiwygEditor', () => {
     expect(rootOf(wrapper).getAttribute('aria-label')).toBe('Body')
     await wrapper.setProps({ label: 'Description' })
     expect(rootOf(wrapper).getAttribute('aria-label')).toBe('Description')
+  })
+
+  it('names the textbox with a default label', async () => {
+    const wrapper = await mountEditor()
+    expect(rootOf(wrapper).getAttribute('aria-label')).toBe('Rich text editor')
+  })
+
+  it('sets, updates and removes aria-labelledby', async () => {
+    const wrapper = await mountEditor({ labelledby: 'body-label' })
+    expect(rootOf(wrapper).getAttribute('aria-labelledby')).toBe('body-label')
+    await wrapper.setProps({ labelledby: 'other-label' })
+    expect(rootOf(wrapper).getAttribute('aria-labelledby')).toBe('other-label')
+    await wrapper.setProps({ labelledby: '' })
+    expect(rootOf(wrapper).hasAttribute('aria-labelledby')).toBe(false)
+  })
+
+  it('exposes only the editor on the instance type', async () => {
+    const wrapper = await mountEditor()
+    expectTypeOf(wrapper.vm.editor).toEqualTypeOf<Editor | null>()
+    expectTypeOf<InstanceType<typeof WysiwygEditor>>().not.toHaveProperty('value')
+    expect(Object.keys(wrapper.vm.$.exposed ?? {})).toEqual(['editor'])
   })
 
   it('emits focus and blur with the native event', async () => {

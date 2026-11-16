@@ -55,6 +55,33 @@ test('Tab nests an item and Shift+Tab moves it back', async ({ page }) => {
   await expect(editor(page)).toBeFocused()
 })
 
+test('Tab in the first item leaves the editor and keeps the list', async ({ page }) => {
+  await open(page, '&content=<ul><li>one</li></ul>')
+  await editor(page).click()
+  await page.keyboard.press('Tab')
+  await expect(editor(page)).not.toBeFocused()
+  await expect(output(page)).toHaveText('<ul><li>one</li></ul>')
+})
+
+test('a heading toggled into a list and back stays a heading', async ({ page }) => {
+  await open(page, '&content=<h2>title</h2><p>text</p>')
+  await editor(page).click()
+  await page.keyboard.press('ControlOrMeta+a')
+  await exec(page, 'bulletList')
+  await expect(output(page)).toHaveText('<ul><li>title</li><li>text</li></ul>')
+  await exec(page, 'bulletList')
+  await expect(output(page)).toHaveText('<h2>title</h2><p>text</p>')
+})
+
+test('lists with one type offer only its command', async ({ page }) => {
+  await open(
+    page,
+    `&options=${encodeURIComponent('{"lists":{"types":["ol"]}}')}&content=<ul><li>a</li></ul>`,
+  )
+  await expect(output(page)).toHaveText('<ol><li>a</li></ol>')
+  expect(await page.evaluate(() => window.editor.commands)).not.toContain('bulletList')
+})
+
 test('Backspace at the start of the first item lifts it out of the list', async ({ page }) => {
   await open(page, '&content=<ul><li>one</li><li>two</li></ul>')
   await editor(page).click()

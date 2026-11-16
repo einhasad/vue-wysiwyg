@@ -2,13 +2,19 @@
   {
     "name": "core + heading",
     "path": ["dist/index.js", "dist/modules/heading.js"],
-    "import": { "dist/index.js": "{ createEditor }", "dist/modules/heading.js": "{ heading }" },
-    "limit": "5000 B"
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/heading.js": "{ heading }"
+    },
+    "limit": "5610 B"
   },
   {
     "name": "core + lists",
     "path": ["dist/index.js", "dist/modules/lists.js"],
-    "import": { "dist/index.js": "{ createEditor }", "dist/modules/lists.js": "{ lists }" },
-    "limit": "5900 B"
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/lists.js": "{ lists }"
+    },
+    "limit": "6280 B"
   }
 ]

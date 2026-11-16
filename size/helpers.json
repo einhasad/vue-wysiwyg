@@ -1,0 +1,11 @@
+[
+  {
+    "name": "core + markModule from helpers",
+    "path": ["dist/index.js", "dist/helpers/index.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/helpers/index.js": "{ markModule }"
+    },
+    "limit": "5980 B"
+  }
+]

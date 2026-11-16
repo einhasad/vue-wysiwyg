@@ -1,0 +1,150 @@
+:where(.vw-editor) {
+  --vw-bg: #fff;
+  --vw-fg: #1f2328;
+  --vw-muted: #59636e;
+  --vw-border: #d1d9e0;
+  --vw-accent: #0969da;
+  --vw-pressed-bg: #ddf4ff;
+  --vw-hover-bg: #f6f8fa;
+  --vw-readonly-bg: #f6f8fa;
+  --vw-error: #d1242f;
+  --vw-focus-ring: 0 0 0 2px var(--vw-accent);
+  --vw-radius: 6px;
+  --vw-gap: 4px;
+  --vw-padding: 8px 12px;
+  --vw-min-height: 8rem;
+  --vw-font: inherit;
+
+  color-scheme: light;
+  border: 1px solid var(--vw-border);
+  border-radius: var(--vw-radius);
+  background: var(--vw-bg);
+  color: var(--vw-fg);
+  font: var(--vw-font);
+}
+
+:where(.vw-editor.vw-dark, .dark .vw-editor, [data-theme='dark'] .vw-editor) {
+  --vw-bg: #0d1117;
+  --vw-fg: #e6edf3;
+  --vw-muted: #9198a1;
+  --vw-border: #3d444d;
+  --vw-accent: #4493f8;
+  --vw-pressed-bg: #1f3a5f;
+  --vw-hover-bg: #151b23;
+  --vw-readonly-bg: #151b23;
+  --vw-error: #f85149;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(.vw-editor:not(.vw-light)) {
+    --vw-bg: #0d1117;
+    --vw-fg: #e6edf3;
+    --vw-muted: #9198a1;
+    --vw-border: #3d444d;
+    --vw-accent: #4493f8;
+    --vw-pressed-bg: #1f3a5f;
+    --vw-hover-bg: #151b23;
+    --vw-readonly-bg: #151b23;
+    --vw-error: #f85149;
+
+    color-scheme: dark;
+  }
+}
+
+:where(.vw-editor) :where(.vw-toolbar) {
+  border-bottom: 1px solid var(--vw-border);
+  padding: var(--vw-gap);
+}
+
+:where(.vw-editor) :where(.vw-toolbar-buttons, .vw-link-popover) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vw-gap);
+}
+
+:where(.vw-editor) :where(.vw-link-popover) {
+  padding-top: var(--vw-gap);
+}
+
+:where(.vw-editor) :where(.vw-button, .vw-input) {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px solid transparent;
+  border-radius: var(--vw-radius);
+  padding: 0 0.5rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+:where(.vw-editor) :where(.vw-button) {
+  cursor: pointer;
+}
+
+:where(.vw-editor) :where(.vw-button:hover) {
+  background: var(--vw-hover-bg);
+}
+
+:where(.vw-editor) :where(.vw-button[data-glyph]:empty)::before {
+  content: attr(data-glyph);
+}
+
+:where(.vw-editor) :where(.vw-button[aria-pressed='true']) {
+  border-color: var(--vw-accent);
+  background: var(--vw-pressed-bg);
+}
+
+:where(.vw-editor) :where(.vw-button[aria-disabled='true']) {
+  opacity: 0.5;
+  cursor: default;
+}
+
+:where(.vw-editor) :where(.vw-input) {
+  border-color: var(--vw-border);
+  margin-left: var(--vw-gap);
+  background: var(--vw-bg);
+}
+
+:where(.vw-editor) :where(.vw-input[aria-invalid='true']) {
+  border-color: var(--vw-error);
+}
+
+:where(.vw-editor) :where(.vw-link-error) {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--vw-error);
+}
+
+:where(.vw-editor) :where([role='textbox']) {
+  position: relative;
+  min-height: var(--vw-min-height);
+  padding: var(--vw-padding);
+  outline: none;
+}
+
+:where(.vw-editor) :where([role='textbox'] > :first-child) {
+  margin-top: 0;
+}
+
+:where(.vw-editor) :where([role='textbox'][data-placeholder].is-empty)::before {
+  position: absolute;
+  color: var(--vw-muted);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+:where(.vw-editor) :where([role='textbox'][aria-readonly='true']) {
+  background: var(--vw-readonly-bg);
+}
+
+:where(.vw-editor) :where([role='textbox'] a) {
+  color: var(--vw-accent);
+}
+
+:where(.vw-editor) :where(.vw-button, .vw-input, [role='textbox']):focus-visible {
+  outline: none;
+  box-shadow: var(--vw-focus-ring);
+}

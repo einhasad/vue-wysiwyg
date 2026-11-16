@@ -7,8 +7,16 @@ export const mountEditor = (options: EditorOptions = {}): Editor => {
   return createEditor({ element, ...options })
 }
 
-export const transfer = (data: Readonly<Record<string, string>>): DataTransfer =>
-  ({ getData: (type: string) => data[type] ?? '' }) as DataTransfer
+export const transfer = (data: Record<string, string>): DataTransfer =>
+  ({
+    get types() {
+      return Object.keys(data)
+    },
+    getData: (type: string) => data[type] ?? '',
+    setData: (type: string, value: string) => {
+      data[type] = value
+    },
+  }) as unknown as DataTransfer
 
 export const dispatch = (
   target: EventTarget,

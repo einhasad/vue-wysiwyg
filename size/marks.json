@@ -7,6 +7,6 @@
       "dist/modules/bold.js": "{ bold }",
       "dist/modules/italic.js": "{ italic }"
     },
-    "limit": "5100 B"
+    "limit": "6040 B"
   }
 ]

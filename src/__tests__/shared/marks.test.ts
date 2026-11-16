@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { Editor, Module } from '../../core/types.js'
 import { bold } from '../../modules/bold.js'
 import { italic } from '../../modules/italic.js'
-import { activeMark, setMark, setMarkAtCaret, toggleMark } from '../../shared/marks.js'
+import {
+  activeMark,
+  isMarkActive,
+  setMark,
+  setMarkAtCaret,
+  toggleMark,
+} from '../../shared/marks.js'
 import { mountEditor, select, selectedText, textOf } from '../core/helpers.js'
 
 const REL = 'rel="noopener noreferrer nofollow"'
@@ -104,7 +110,9 @@ describe('setMark with attributes', () => {
     run(editor, 'toggleLink')
     expect(editor.getHTML()).toBe('<p>ab</p>')
     select(textOf(editor, [0, 0]), 1)
-    expect(run(editor, 'toggleLink')).toBe(false)
+    expect(run(editor, 'toggleLink')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>ab</p>')
+    expect(isMarkActive(editor, 'a')).toBe(true)
   })
 
   it('leaves URL safety to normalize when a caller skips safeUrl', () => {

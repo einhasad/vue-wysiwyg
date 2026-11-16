@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Editor } from '../../../core/types.js'
+import { createEditor } from '../../../core/editor.js'
 import { bold } from '../../../modules/bold.js'
 import { history, type HistoryOptions } from '../../../modules/history.js'
 import {
@@ -361,6 +362,56 @@ describe('history module', () => {
     other.setHTML('<p>y</p>', { history: true })
     expect(editor.can('undo')).toBe(false)
     expect(other.can('undo')).toBe(true)
+  })
+
+  it('keeps the stacks of two editors apart when they share one module instance', () => {
+    const shared = [history(), bold()]
+    const first = createEditor({ content: '<p>secret A</p>', modules: shared })
+    const second = createEditor({ content: '<p>B</p>', modules: shared })
+    first.setHTML('<p>A edited</p>', { history: true })
+    expect(second.can('undo')).toBe(false)
+    expect(second.exec('undo')).toBe(false)
+    expect(second.getHTML()).toBe('<p>B</p>')
+    second.setHTML('<p>B edited</p>', { history: true })
+    expect(first.exec('undo')).toBe(true)
+    expect(first.getHTML()).toBe('<p>secret A</p>')
+    expect(second.exec('undo')).toBe(true)
+    expect(second.getHTML()).toBe('<p>B</p>')
+  })
+
+  it('tracks composition per editor when the module instance is shared', () => {
+    const shared = [history()]
+    const first = createEditor({ content: '<p>a</p>', modules: shared })
+    const second = createEditor({ content: '<p>b</p>', modules: shared })
+    second.setHTML('<p>c</p>', { history: true })
+    dispatch(first.root, 'compositionstart')
+    expect(second.can('undo')).toBe(true)
+  })
+
+  it('records a transaction that runs a command as one step', () => {
+    const editor = historyEditor('<p>a</p>')
+    const text = textOf(editor, [0, 0])
+    editor.transact(() => {
+      text.appendData('b')
+      select(text, 1, text, 2)
+      editor.exec('bold')
+    })
+    expect(editor.getHTML()).toBe('<p>a<strong>b</strong></p>')
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a</p>')
+    expect(editor.can('undo')).toBe(false)
+    expect(editor.exec('redo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a<strong>b</strong></p>')
+  })
+
+  it('starts a new step for a command after typing that left the content unchanged', () => {
+    const editor = historyEditor('<p>ab</p>')
+    select(textOf(editor, [0, 0]), 2)
+    beforeInput(editor, 'insertText', { data: 'c' })
+    select(textOf(editor, [0, 0]), 0, textOf(editor, [0, 0]), 1)
+    editor.exec('bold')
+    editor.exec('undo')
+    expect(selectedText()).toBe('a')
   })
 
   it('stops tracking composition after destroy', () => {

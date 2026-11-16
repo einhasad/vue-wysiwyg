@@ -151,3 +151,59 @@ test('Mod-u toggles underline on the selection', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+u')
   await expect(output(page)).toHaveText('<p>abc</p>')
 })
+
+const strongTexts = async (page: Page): Promise<string[]> =>
+  page.evaluate(() =>
+    [...window.editor.root.querySelectorAll('strong')].map((strong) => strong.textContent),
+  )
+
+test('Mod-b on a collapsed caret makes the next typed text bold', async ({ page }) => {
+  await open(page, '?modules=bold')
+  await editor(page).click()
+  await page.keyboard.type('a')
+  await page.keyboard.press('ControlOrMeta+b')
+  expect(await page.evaluate(() => window.editor.isActive('bold'))).toBe(true)
+  await page.keyboard.type('bc')
+  await expect(output(page)).toHaveText('<p>a<strong>bc</strong></p>')
+})
+
+test('Mod-b at the end of a bold run types outside the bold', async ({ page }) => {
+  await open(page, '?modules=bold')
+  await editor(page).click()
+  await page.keyboard.press('ControlOrMeta+b')
+  await page.keyboard.type('bold')
+  await page.keyboard.press('ControlOrMeta+b')
+  await page.keyboard.type('x')
+  await expect(output(page)).toHaveText('<p><strong>bold</strong>x</p>')
+})
+
+for (const modules of ['bold', 'bold,lists'] as const) {
+  test(`type bold, Enter, Mod-b, type x: x is not bold (${modules})`, async ({ page }) => {
+    await open(page, `?modules=${modules}`)
+    await editor(page).click()
+    if (modules === 'bold,lists') {
+      await page.evaluate(() => window.editor.exec('bulletList' as never))
+    }
+    await page.keyboard.press('ControlOrMeta+b')
+    await page.keyboard.type('bold')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('ControlOrMeta+b')
+    await page.keyboard.type('xyz')
+    await expect(output(page)).toContainText('xyz')
+    expect(await strongTexts(page)).toEqual(['bold'])
+  })
+}
+
+test('placeholder hides while an IME composes through CDP', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'CDP Input.imeSetComposition is Chromium only')
+  await mount(page, { placeholder: 'Write here' })
+  const root = editor(page)
+  await root.click()
+  await expect(root).toHaveClass(/\bis-empty\b/)
+  const session = await page.context().newCDPSession(page)
+  await session.send('Input.imeSetComposition', { text: 'に', selectionStart: 1, selectionEnd: 1 })
+  await expect(root).not.toHaveClass(/\bis-empty\b/)
+  await session.send('Input.insertText', { text: '日' })
+  await expect(output(page)).toHaveText('<p>日</p>')
+  await expect(root).not.toHaveClass(/\bis-empty\b/)
+})

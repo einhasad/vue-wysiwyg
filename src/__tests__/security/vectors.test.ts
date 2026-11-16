@@ -211,6 +211,76 @@ describe('mandatory XSS vectors', () => {
     ).toThrow(TypeError)
   })
 
+  it('10 a later module adding the same tag keeps the URL policy and fixed attributes', () => {
+    const plain: Module = {
+      name: 'plain',
+      schema: {
+        tags: { a: { kind: 'inline', attrs: ['href', 'target'], fixedAttrs: { rel: 'x' } } },
+      },
+    }
+    for (const [modules, rel] of [
+      [[content, plain], 'noopener noreferrer nofollow'],
+      [[plain, content], 'x'],
+    ] as const) {
+      const merged = createSchema(modules)
+      const container = document.createElement('div')
+      container.innerHTML = sanitize(
+        '<p><a href="javascript:alert(1)" title="t" target="_blank">x</a></p>',
+        { schema: merged },
+      )
+      const link = container.querySelector('a') as HTMLAnchorElement
+      expect(link.hasAttribute('href')).toBe(false)
+      expect([link.title, link.target, link.rel]).toEqual(['t', '_blank', rel])
+      expect(sanitize('<a href="/ok">x</a>', { schema: merged })).toContain('href="/ok"')
+    }
+  })
+
+  it.each(['href', 'src', 'action'])(
+    '10 attribute %s is URL-checked without urlAttrs',
+    (attribute) => {
+      const loose = createSchema([
+        {
+          name: 'loose',
+          schema: { tags: { span: { kind: 'inline', attrs: [attribute, 'title'] } } },
+        },
+      ])
+      expect(
+        sanitize(`<span ${attribute}="javascript:alert(1)" title="javascript:t">x</span>`, {
+          schema: loose,
+        }),
+      ).toBe('<span title="javascript:t">x</span>')
+      expect(sanitize(`<span ${attribute}="/ok">x</span>`, { schema: loose })).toBe(
+        `<span ${attribute}="/ok">x</span>`,
+      )
+    },
+  )
+
+  it.each(['srcset', 'formaction', 'xlink:href'])('10 %s can not be allow-listed', (attribute) => {
+    expect(() =>
+      createSchema([
+        { name: 'img', schema: { tags: { img: { kind: 'void', attrs: [attribute] } } } },
+      ]),
+    ).toThrow(TypeError)
+  })
+
+  it.each(['javascript', 'JavaScript', 'vbscript', 'data'])(
+    '2 urlSchemes can not enable %s',
+    (scheme) => {
+      const permissive = createSchema([content], { urlSchemes: ['https', scheme] })
+      expect(safeUrl(`${scheme}:alert(1)`, permissive)).toBeNull()
+      expect(permissive.urlSchemes).toEqual(['https'])
+      expect(sanitize(`<a href="${scheme}:alert(1)">x</a>`, { schema: permissive })).toBe(
+        '<a rel="noopener noreferrer nofollow">x</a>',
+      )
+      const editor = mountEditor({
+        modules: [content],
+        urlSchemes: [scheme],
+        content: `<p><a href="${scheme}:x">x</a></p>`,
+      })
+      expect(editor.root.querySelector('a')?.hasAttribute('href')).toBe(false)
+    },
+  )
+
   it.each([
     '<form><input name=childNodes><input name=attributes><input name=localName><input name=nodeType>x</form>y',
     '<img name=getAttribute><img name=body><img name=createElement>z',
@@ -243,8 +313,6 @@ describe('mandatory XSS vectors', () => {
     }
   })
 
-  it.todo('13 markdown vectors through mdToHtml (owned by the markdown wave)')
-
   it('14 paste keeps text/plain markup as text', () => {
     const editor = mountEditor({ modules: [content], content: '<p>x</p>' })
     select(editor.root.firstChild?.firstChild as Node, 1)
@@ -267,9 +335,6 @@ describe('mandatory XSS vectors', () => {
     })
     expect(editor.getHTML()).toBe('<p>x</p>')
   })
-
-  it.todo('14 text/uri-list javascript: through the paste module (owned by the paste wave)')
-  it.todo('2 link command rejects javascript: variants via safeUrl (owned by the link wave)')
 
   it('15 fuzz: sanitize is idempotent and its output is always allow-listed', () => {
     const tagNames = [

@@ -33,8 +33,13 @@ describe('createEditor setup', () => {
     expect(createEditor().getHTML()).toBe('')
   })
 
-  it('omits aria-label without a label', () => {
-    expect(mountEditor().root.hasAttribute('aria-label')).toBe(false)
+  it('falls back to a default accessible name unless the element is already labelled', () => {
+    expect(mountEditor().root.getAttribute('aria-label')).toBe('Rich text editor')
+    expect(mountEditor({ label: '' }).root.getAttribute('aria-label')).toBe('Rich text editor')
+    const element = document.createElement('div')
+    element.setAttribute('aria-label', 'Notes')
+    createEditor({ element })
+    expect(element.getAttribute('aria-label')).toBe('Notes')
   })
 
   it('sanitizes and normalizes the initial content', () => {
@@ -109,6 +114,26 @@ describe('content API', () => {
     expect(beforeChange).not.toHaveBeenCalled()
     editor.setHTML('<p>b</p>', { history: true })
     expect(beforeChange).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the caret path when setHTML replaces content around it', () => {
+    const editor = mountEditor({ content: '<p>hello</p><p>x</p>' })
+    select(textOf(editor, [0, 0]), 5)
+    editor.setHTML('<p>hello world!</p><p>x</p>')
+    const selection = document.getSelection()
+    expect([selection?.anchorNode, selection?.anchorOffset]).toEqual([textOf(editor, [0, 0]), 5])
+    select(textOf(editor, [1, 0]), 1)
+    editor.setValue('<p>a</p>')
+    expect([selection?.anchorNode, selection?.anchorOffset]).toEqual([editor.root.firstChild, 1])
+    select(textOf(editor, [0, 0]), 1)
+    editor.setHTML('')
+    expect([selection?.anchorNode, selection?.anchorOffset]).toEqual([
+      editor.root.firstChild?.firstChild,
+      0,
+    ])
+    document.getSelection()?.removeAllRanges()
+    editor.setHTML('<p>b</p>')
+    expect(selection?.rangeCount).toBe(0)
   })
 
   it('sets and gets values through the format', () => {
@@ -294,6 +319,19 @@ describe('readonly', () => {
     expect(hook).not.toHaveBeenCalled()
   })
 
+  it('keeps a readonly editor focusable so it can be read and copied', () => {
+    const editor = mountEditor({ readonly: true })
+    expect(editor.root.getAttribute('tabindex')).toBe('0')
+    editor.setReadonly(false)
+    expect(editor.root.hasAttribute('tabindex')).toBe(false)
+    const element = document.body.appendChild(document.createElement('div'))
+    element.tabIndex = -1
+    const own = createEditor({ element, readonly: true })
+    expect(element.getAttribute('tabindex')).toBe('-1')
+    own.setReadonly(false)
+    expect(element.getAttribute('tabindex')).toBe('-1')
+  })
+
   it('still allows programmatic setHTML', () => {
     const editor = mountEditor({ readonly: true })
     editor.setHTML('<p>a</p>')
@@ -329,6 +367,44 @@ describe('focus, blur, selection and destroy', () => {
     document.dispatchEvent(new Event('selectionchange'))
     await new Promise((resolve) => requestAnimationFrame(resolve))
     expect(selection).toHaveBeenCalledOnce()
+  })
+
+  it('normalizes without a document selection', () => {
+    const editor = mountEditor({ content: '<p>a</p>' })
+    vi.spyOn(document, 'getSelection').mockReturnValue(null)
+    editor.root.insertAdjacentHTML('beforeend', '<span>b</span>')
+    expect(() => dispatch(editor.root, 'input')).not.toThrow()
+    expect(editor.getHTML()).toBe('<p>a</p><p>b</p>')
+  })
+
+  it('restores the element it was given and ignores API calls after destroy', () => {
+    const element = document.body.appendChild(document.createElement('div'))
+    element.setAttribute('class', 'host')
+    element.setAttribute('aria-label', 'Notes')
+    const run = vi.fn(() => true)
+    const editor = createEditor({
+      element,
+      label: 'Body',
+      content: '<p>a</p>',
+      modules: [commandModule('cmd', run)],
+    })
+    const update = vi.fn()
+    editor.on('update', update)
+    editor.destroy()
+    expect(element.getAttributeNames()).toEqual(['class', 'aria-label'])
+    expect(element.getAttribute('aria-label')).toBe('Notes')
+    editor.setHTML('<p>b</p>')
+    editor.setValue('<p>c</p>')
+    editor.transact(() => {
+      element.textContent = 'd'
+    })
+    expect(editor.exec('cmd' as 'undo')).toBe(false)
+    editor.setReadonly(true)
+    editor.destroy()
+    expect(element.innerHTML).toBe('<p>a</p>')
+    expect(element.getAttributeNames()).toEqual(['class', 'aria-label'])
+    expect(run).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
   })
 
   it('removes every listener and emits destroy', () => {

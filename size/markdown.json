@@ -1,0 +1,17 @@
+[
+  {
+    "name": "markdown",
+    "path": "dist/markdown/index.js",
+    "import": "{ mdToHtml, htmlToMd }",
+    "limit": "2450 B"
+  },
+  {
+    "name": "core + markdownShortcuts",
+    "path": ["dist/index.js", "dist/modules/markdown-shortcuts.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/markdown-shortcuts.js": "{ markdownShortcuts }"
+    },
+    "limit": "5720 B"
+  }
+]

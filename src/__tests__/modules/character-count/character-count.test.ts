@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { createEditor } from '../../../core/editor.js'
 import type { Editor } from '../../../core/types.js'
 import { bold } from '../../../modules/bold.js'
 import {
@@ -45,6 +46,27 @@ describe('characterCount module', () => {
     editor.destroy()
     expect(counter.count()).toBe(0)
     expect(counter.words()).toBe(0)
+  })
+
+  it('counts each editor separately when they share one module instance', () => {
+    const counter = characterCount({ limit: 10 })
+    const first = createEditor({ content: '<p>aaaa</p>', modules: [counter] })
+    const second = createEditor({ content: '<p>bb bbbbbb</p>', modules: [counter] })
+    expect(counter.count(first)).toBe(4)
+    expect(counter.words(first)).toBe(1)
+    expect(counter.count(second)).toBe(9)
+    expect(counter.words(second)).toBe(2)
+    first.destroy()
+    expect(counter.count()).toBe(9)
+  })
+
+  it('limits each editor by its own text when they share one module instance', () => {
+    const counter = characterCount({ limit: 5 })
+    const element = document.body.appendChild(document.createElement('div'))
+    const first = createEditor({ element, content: '<p>a</p>', modules: [counter] })
+    createEditor({ content: '<p>bbbbb</p>', modules: [counter] })
+    select(textOf(first, [0, 0]), 1)
+    expect(beforeInput(first, 'insertText', { data: 'cd' }).defaultPrevented).toBe(false)
   })
 
   it('counts characters as the editor text length', () => {

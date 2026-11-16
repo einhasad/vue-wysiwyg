@@ -4,6 +4,7 @@ import {
   onMounted,
   shallowRef,
   watch,
+  watchEffect,
   type PropType,
   type SlotsType,
 } from 'vue'
@@ -35,7 +36,9 @@ export const WysiwygEditor = defineComponent({
     /** Blocks every edit while true */
     readonly: Boolean,
     /** Accessible name of the textbox */
-    label: { type: String, default: '' },
+    label: { type: String, default: 'Rich text editor' },
+    /** Id of the element that names the textbox, wins over label */
+    labelledby: { type: String, default: '' },
     /** Renders a hidden input with this name for native forms */
     name: { type: String, default: '' },
   },
@@ -44,6 +47,7 @@ export const WysiwygEditor = defineComponent({
   expose: ['editor'],
   setup(props, { emit }) {
     const value = shallowRef('')
+    let applyingModel = false
     const editor = useEditor({
       get content() {
         return props.modelValue
@@ -70,7 +74,7 @@ export const WysiwygEditor = defineComponent({
       value.value = current.getValue()
       current.on('update', () => {
         value.value = current.getValue()
-        if (value.value !== props.modelValue) {
+        if (!applyingModel && value.value !== props.modelValue) {
           emit('update:modelValue', value.value)
         }
       })
@@ -86,7 +90,9 @@ export const WysiwygEditor = defineComponent({
       () => props.modelValue,
       (modelValue) => {
         if (editor.value && modelValue !== editor.value.getValue()) {
+          applyingModel = true
           editor.value.setValue(modelValue)
+          applyingModel = false
         }
       },
     )
@@ -96,12 +102,17 @@ export const WysiwygEditor = defineComponent({
         editor.value?.setReadonly(readonly)
       },
     )
-    watch(
-      () => props.label,
-      (label) => {
-        editor.value?.root.setAttribute('aria-label', label)
-      },
-    )
+    watchEffect(() => {
+      const root = editor.value?.root
+      if (root) {
+        root.setAttribute('aria-label', props.label)
+        if (props.labelledby) {
+          root.setAttribute('aria-labelledby', props.labelledby)
+        } else {
+          root.removeAttribute('aria-labelledby')
+        }
+      }
+    })
 
     return { editor, value }
   },

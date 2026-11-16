@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +58,9 @@ jobs:
 
       - name: End-to-end tests
         run: npm run test:e2e
+
+      - name: Demo end-to-end tests
+        run: npx playwright test -c playwright.demo.config.ts
 
       - name: Upload report
         if: failure()

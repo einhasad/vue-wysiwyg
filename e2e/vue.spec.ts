@@ -23,7 +23,26 @@ test('v-model round trip: typing updates the model, model updates the editor', a
   await expect(editor(page)).toHaveText('from parent')
   await expect(editor(page).locator('strong')).toHaveText('parent')
   await expect(editor(page).locator('img')).toHaveCount(0)
-  await expect(model(page)).toHaveText('<p>from <strong>parent</strong></p>')
+  await expect(page.locator('input[type=hidden][name=body]')).toHaveValue(
+    '<p>from <strong>parent</strong></p>',
+  )
+  expect(await modelValue(page)).toBe(
+    '<p>from <strong>parent</strong></p><img src=x onerror=alert(1)>',
+  )
+})
+
+test('loading or setting a value that normalizes differently emits no update', async ({ page }) => {
+  await open(page, `?content=${encodeURIComponent('<b>loaded</b>')}`)
+  await expect(editor(page).locator('strong')).toHaveText('loaded')
+  await page.evaluate(() => {
+    window.setModel('plain text')
+  })
+  await expect(editor(page)).toHaveText('plain text')
+  expect(await modelValue(page)).toBe('plain text')
+  await editor(page).click()
+  await page.keyboard.press('End')
+  await page.keyboard.type('!')
+  await expect(model(page)).toHaveText('<p>plain text!</p>')
 })
 
 test('typing in the middle keeps the caret through the v-model round trip', async ({ page }) => {
@@ -98,4 +117,14 @@ test('emits focus and blur', async ({ page }) => {
   await editor(page).click()
   await page.locator('#toggle-readonly').focus()
   await expect.poll(async () => page.evaluate(() => window.focusEvents)).toEqual(['focus', 'blur'])
+})
+
+test('Tab reaches a readonly editor and it stays readonly', async ({ page }) => {
+  await open(page, '?readonly&content=<p>read me</p>')
+  await expect(editor(page)).toHaveAttribute('aria-readonly', 'true')
+  await page.locator('body').focus()
+  await page.keyboard.press('Tab')
+  await expect(editor(page)).toBeFocused()
+  await page.keyboard.type('x')
+  await expect(editor(page)).toHaveText('read me')
 })

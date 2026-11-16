@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>vue-wysiwyg: published npm package smoke test</title>
+    <style>
+      body {
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 1.5rem;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+
+      .wysiwyg {
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+      }
+
+      [role='textbox'] {
+        min-height: 8rem;
+        padding: 8px 12px;
+        outline: none;
+      }
+
+      pre {
+        overflow: auto;
+        border: 1px solid #d1d9e0;
+        border-radius: 6px;
+        padding: 0.75rem;
+        background: #f6f8fa;
+        white-space: pre-wrap;
+      }
+    </style>
+    <script>
+      const PACKAGE = '@einhasad-vue/vue-wysiwyg'
+      const requested = new URLSearchParams(location.search).get('v') ?? 'latest'
+      const version = /^(latest|next|\d+\.\d+\.\d+(-[\w.]+)?)$/.test(requested)
+        ? requested
+        : 'latest'
+      const subpaths = [
+        'vue',
+        'theme',
+        'sanitize',
+        'modules/bold',
+        'modules/italic',
+        'modules/heading',
+        'modules/lists',
+        'modules/history',
+      ]
+      const importMap = document.createElement('script')
+      importMap.type = 'importmap'
+      importMap.textContent = JSON.stringify({
+        imports: {
+          vue: 'https://esm.sh/vue@3.5',
+          ...Object.fromEntries(
+            subpaths.map((subpath) => [
+              `${PACKAGE}/${subpath}`,
+              `https://esm.sh/${PACKAGE}@${version}/${subpath}?external=vue`,
+            ]),
+          ),
+        },
+      })
+      document.currentScript.after(importMap)
+      const themeCss = document.createElement('link')
+      themeCss.rel = 'stylesheet'
+      themeCss.href = `https://cdn.jsdelivr.net/npm/${PACKAGE}@${version}/dist/theme.css`
+      document.head.append(themeCss)
+      window.packageVersion = version
+    </script>
+  </head>
+  <body>
+    <h1>Published package smoke test</h1>
+    <p>
+      Loads <code>@einhasad-vue/vue-wysiwyg</code> from esm.sh and jsDelivr, not from the local
+      source. Pick a version with <code>?v=0.0.1</code>; the default is <code>latest</code>.
+    </p>
+    <p>
+      Requested: <code id="requested-version"></code>, loaded: <code id="loaded-version">…</code>
+    </p>
+    <p>Toolbar: <code id="toolbar-status">…</code></p>
+    <div id="app"></div>
+    <h2>getValue()</h2>
+    <pre id="output"></pre>
+    <p id="load-error" hidden></p>
+    <script type="module">
+      const PACKAGE = '@einhasad-vue/vue-wysiwyg'
+      const version = window.packageVersion
+      const text = (id, value) => {
+        document.getElementById(id).textContent = value
+      }
+      text('requested-version', version)
+
+      try {
+        const [
+          { createApp, h, shallowRef },
+          { WysiwygEditor },
+          bold,
+          italic,
+          heading,
+          lists,
+          history,
+        ] = await Promise.all([
+          import('vue'),
+          import(`${PACKAGE}/vue`),
+          import(`${PACKAGE}/modules/bold`),
+          import(`${PACKAGE}/modules/italic`),
+          import(`${PACKAGE}/modules/heading`),
+          import(`${PACKAGE}/modules/lists`),
+          import(`${PACKAGE}/modules/history`),
+        ])
+        const theme = await import(`${PACKAGE}/theme`).catch(() => null)
+        const manifest = await fetch(
+          `https://cdn.jsdelivr.net/npm/${PACKAGE}@${version}/package.json`,
+        )
+          .then((response) => response.json())
+          .catch(() => ({ version: 'unknown' }))
+        text('loaded-version', manifest.version)
+        text(
+          'toolbar-status',
+          theme ? 'EditorToolbar from /theme' : 'none (/theme not in this version)',
+        )
+
+        const modules = [
+          bold.bold(),
+          italic.italic(),
+          heading.heading(),
+          lists.lists(),
+          history.history(),
+        ]
+        const App = {
+          setup() {
+            const editor = shallowRef(null)
+            const value = shallowRef('<p>Published <strong>package</strong> page</p>')
+            const showValue = () => {
+              text('output', editor.value?.editor?.getValue() ?? value.value)
+            }
+            return () =>
+              h(
+                WysiwygEditor,
+                {
+                  ref: (instance) => {
+                    if (instance && editor.value !== instance) {
+                      editor.value = instance
+                      showValue()
+                      document.body.dataset.ready = 'true'
+                    }
+                  },
+                  class: 'vw-editor',
+                  modelValue: value.value,
+                  'onUpdate:modelValue': (next) => {
+                    value.value = next
+                    showValue()
+                  },
+                  label: 'Published editor',
+                  modules,
+                },
+                theme ? { toolbar: ({ editor }) => h(theme.EditorToolbar, { editor }) } : undefined,
+              )
+          },
+        }
+        createApp(App).mount('#app')
+      } catch (error) {
+        const message = document.getElementById('load-error')
+        message.hidden = false
+        message.textContent = `Failed to load ${PACKAGE}@${version}: ${error}`
+        document.body.dataset.ready = 'error'
+      }
+    </script>
+  </body>
+</html>

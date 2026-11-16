@@ -118,6 +118,7 @@ describe('normalizeElement', () => {
       '<ul><li>a<ul><li>b</li></ul></li></ul>',
     ],
     ['paragraphs in items unwrapped', '<ul><li><p>a</p><p>b</p></li></ul>', '<ul><li>ab</li></ul>'],
+    ['empty unknown elements removed', '<p>a<span></span>b</p>', '<p>ab</p>'],
     [
       'items in items unwrapped',
       '<ol start="2" type="a"><li>a<li>b</li></li></ol>',

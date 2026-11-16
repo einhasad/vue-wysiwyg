@@ -1,4 +1,4 @@
-import type { Module, Schema, SchemaOptions, TagRule } from '../core/types.js'
+import type { Module, Schema, SchemaOptions, TagKind, TagRule } from '../core/types.js'
 import { DEFAULT_URL_SCHEMES } from './url.js'
 
 export const DROPPED_TAGS: ReadonlySet<string> = new Set(
@@ -7,7 +7,7 @@ export const DROPPED_TAGS: ReadonlySet<string> = new Set(
   ),
 )
 
-const UNSAFE_NAME = /^(on|(style|srcdoc|formaction|constructor|prototype)$)/
+const UNSAFE_NAME = /^(on|(style|srcdoc|srcset|formaction|constructor|prototype)$)/
 
 const assertSafeNames = (names: readonly string[], pattern: RegExp, isTag?: boolean): void => {
   for (const name of names) {
@@ -16,6 +16,14 @@ const assertSafeNames = (names: readonly string[], pattern: RegExp, isTag?: bool
     }
   }
 }
+
+export const kindOf = (schema: Schema, node: Node | null): TagKind | undefined => {
+  const name = (node as Element | null)?.localName as string
+  return schema.tags.get(schema.rename.get(name) ?? name)?.kind
+}
+
+export const isBlockLevel = (schema: Schema, node: Node | null): boolean =>
+  /^(block|list|item)$/.test(kindOf(schema, node) ?? '')
 
 export function createSchema(modules: readonly Module[] = [], options: SchemaOptions = {}): Schema {
   const tags = new Map<string, TagRule>([
@@ -36,7 +44,19 @@ export function createSchema(modules: readonly Module[] = [], options: SchemaOpt
         [...rule.attrs, ...(rule.urlAttrs ?? []), ...Object.keys(rule.fixedAttrs ?? {})],
         /^[a-z][a-z0-9-]*$/,
       )
-      tags.set(name, rule)
+      const previous = tags.get(name)
+      tags.set(name, {
+        kind: rule.kind,
+        attrs: [...(previous?.attrs ?? []), ...rule.attrs],
+        urlAttrs: [
+          ...(previous?.urlAttrs ?? []),
+          ...(rule.urlAttrs ?? []),
+          'href',
+          'src',
+          'action',
+        ],
+        fixedAttrs: { ...rule.fixedAttrs, ...previous?.fixedAttrs },
+      })
     }
     for (const [from, to] of renamed) {
       rename.set(from, to)
@@ -45,7 +65,9 @@ export function createSchema(modules: readonly Module[] = [], options: SchemaOpt
   return {
     tags,
     rename,
-    urlSchemes: options.urlSchemes ?? DEFAULT_URL_SCHEMES,
+    urlSchemes: (options.urlSchemes ?? DEFAULT_URL_SCHEMES).filter(
+      (scheme) => !/^(javascript|vbscript|data)$/i.test(scheme),
+    ),
     allowProtocolRelative: !!options.allowProtocolRelative,
   }
 }

@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "paths": {
+      "@einhasad-vue/vue-wysiwyg": ["../src/index.ts"],
+      "@einhasad-vue/vue-wysiwyg/modules/*": ["../src/modules/*.ts"],
+      "@einhasad-vue/vue-wysiwyg/*": ["../src/*/index.ts"]
+    }
+  },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}

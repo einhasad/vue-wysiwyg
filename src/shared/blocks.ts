@@ -2,6 +2,7 @@ import { nodeLength } from '../core/selection.js'
 import type { Editor, TagKind } from '../core/types.js'
 
 const moved = new Map<Node, Node>()
+const itemOrigins = new WeakMap<Element, string>()
 
 export const kindOf = (editor: Editor, node: Node): TagKind | undefined =>
   editor.schema.tags.get((node as Element).localName)?.kind
@@ -59,6 +60,12 @@ export const retagTracked = (element: Element, tag: string): Element => {
   return copy
 }
 
+export const toItem = (line: Element): Element => {
+  const item = retagTracked(line, 'li')
+  itemOrigins.set(item, line.localName)
+  return item
+}
+
 export const keepSelection = (editor: Editor, change: () => void): boolean => {
   const selection = editor.root.ownerDocument.getSelection() as Selection
   const { anchorNode, anchorOffset, focusNode, focusOffset } = selection
@@ -90,7 +97,7 @@ export const outdent = (editor: Editor, item: Element): Element => {
     ;(outer as Element).after(item)
     return item
   }
-  const block = retagTracked(item, 'p')
+  const block = retagTracked(item, itemOrigins.get(item) ?? 'p')
   list.after(block, ...[...block.children].filter((child) => kindOf(editor, child) === 'list'))
   return block
 }

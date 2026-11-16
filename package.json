@@ -1,6 +1,6 @@
 {
   "name": "@einhasad-vue/vue-wysiwyg",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Tiny, modular, XSS-safe WYSIWYG editor for Vue 3 with a headless core, Markdown and HTML input/output",
   "keywords": [
     "vue",
@@ -39,6 +39,18 @@
       "types": "./dist/normalize/index.d.ts",
       "import": "./dist/normalize/index.js"
     },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "import": "./dist/markdown/index.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers/index.d.ts",
+      "import": "./dist/helpers/index.js"
+    },
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "import": "./dist/modules/index.js"
+    },
     "./modules/*": {
       "types": "./dist/modules/*.d.ts",
       "import": "./dist/modules/*.js"
@@ -47,10 +59,17 @@
       "types": "./dist/vue/index.d.ts",
       "import": "./dist/vue/index.js"
     },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./theme.css": "./dist/theme.css",
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -72,7 +91,10 @@
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium firefox webkit",
     "size": "npm run build && size-limit",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm run test:coverage && npm run size"
+    "prepublishOnly": "npm run lint && npm run typecheck && npm run test:coverage && npm run size",
+    "demo": "vite --config vite.demo.config.ts",
+    "demo:build": "vue-tsc --noEmit -p demo/tsconfig.json && vite build --config vite.demo.config.ts",
+    "demo:preview": "vite preview --config vite.demo.config.ts"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
@@ -86,6 +108,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
     "@size-limit/esbuild": "^14.3.0",
     "@size-limit/file": "^14.3.0",

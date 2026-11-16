@@ -1,0 +1,20 @@
+[
+  {
+    "name": "starter: core + starterKit",
+    "path": ["dist/index.js", "dist/modules/index.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/index.js": "{ starterKit }"
+    },
+    "limit": "9120 B"
+  },
+  {
+    "name": "core + bold from the modules barrel",
+    "path": ["dist/index.js", "dist/modules/index.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/modules/index.js": "{ bold }"
+    },
+    "limit": "6020 B"
+  }
+]

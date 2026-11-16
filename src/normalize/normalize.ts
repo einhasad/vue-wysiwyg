@@ -1,6 +1,6 @@
 import type { Schema, TagKind, TagRule } from '../core/types.js'
 import { HTML_NAMESPACE, shallowCopy } from '../sanitize/sanitizer.js'
-import { DROPPED_TAGS } from '../sanitize/schema.js'
+import { DROPPED_TAGS, kindOf } from '../sanitize/schema.js'
 
 type Context = 'root' | 'list' | 'item' | 'text'
 type NodeClass = TagKind | 'text' | 'drop' | 'unknown'
@@ -39,7 +39,7 @@ export function normalizeElement(root: Element, schema: Schema): boolean {
           (node as Element).namespaceURI !== HTML_NAMESPACE ||
           DROPPED_TAGS.has((node as Element).localName)
         ? 'drop'
-        : (schema.tags.get(nameOf(node))?.kind ?? 'unknown')
+        : (kindOf(schema, node) ?? 'unknown')
 
   const flatten = (parent: Element, context: Context, marks: readonly string[]): void => {
     for (let node = parent.firstChild; node;) {

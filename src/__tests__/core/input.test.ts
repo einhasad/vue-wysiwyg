@@ -350,11 +350,9 @@ describe('paste and drop', () => {
     const editor = mountEditor({ content: '<p>abcd</p>' })
     const beforeChange = vi.fn()
     editor.on('beforeChange', beforeChange)
-    dispatch(editor.root, 'dragstart')
-    expect(
-      dispatch(editor.root, 'drop', { dataTransfer: transfer({ 'text/plain': 'x' }) })
-        .defaultPrevented,
-    ).toBe(false)
+    const dataTransfer = transfer({ 'text/plain': 'x' })
+    dispatch(editor.root, 'dragstart', { dataTransfer })
+    expect(dispatch(editor.root, 'drop', { dataTransfer }).defaultPrevented).toBe(false)
     expect(beforeInput(editor, 'insertFromDrop').defaultPrevented).toBe(false)
     expect(beforeChange).toHaveBeenCalledOnce()
     dispatch(editor.root, 'dragend')
@@ -363,6 +361,23 @@ describe('paste and drop', () => {
       dispatch(editor.root, 'drop', { dataTransfer: transfer({ 'text/plain': 'x' }) })
         .defaultPrevented,
     ).toBe(true)
+  })
+
+  it('sanitizes an external drop after an internal drag whose dragend never reached the root', () => {
+    const editor = mountEditor({ content: '<p>ab</p><p>cd</p>' })
+    const source = editor.root.lastChild as Element
+    source.addEventListener('dragstart', () => {
+      source.remove()
+    })
+    dispatch(source, 'dragstart', { dataTransfer: transfer({ 'text/plain': 'cd' }) })
+    dispatch(source, 'dragend')
+    select(textOf(editor, [0, 0]), 2)
+    const external = transfer({ 'text/html': '<img src=x onerror=alert(1)><b>X</b>' })
+    expect(dispatch(editor.root, 'drop', { dataTransfer: external }).defaultPrevented).toBe(true)
+    expect(beforeInput(editor, 'insertFromDrop', { dataTransfer: external }).defaultPrevented).toBe(
+      true,
+    )
+    expect(editor.getHTML()).toBe('<p>abXX</p>')
   })
 })
 

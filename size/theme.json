@@ -1,0 +1,17 @@
+[
+  {
+    "name": "core + vue + theme",
+    "path": ["dist/index.js", "dist/vue/index.js", "dist/theme/index.js"],
+    "import": {
+      "dist/index.js": "{ createEditor }",
+      "dist/vue/index.js": "{ useEditor, useEditorState, EditorContent, WysiwygEditor }",
+      "dist/theme/index.js": "{ EditorToolbar, LinkPopover, defaultMessages }"
+    },
+    "limit": "7380 B"
+  },
+  {
+    "name": "theme.css",
+    "path": "dist/theme.css",
+    "limit": "1200 B"
+  }
+]

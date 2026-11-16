@@ -65,7 +65,7 @@ export interface Module {
 }
 
 export interface Format {
-  parse(input: string): string
+  parse(input: string, schema?: Schema): string
   stringify(html: string): string
 }
 
