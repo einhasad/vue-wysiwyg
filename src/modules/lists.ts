@@ -68,7 +68,7 @@ const toggleList = (editor: Editor, tag: string): boolean => {
   )
 }
 
-const indent = (editor: Editor, item: Element): void => {
+const indent = (item: Element): void => {
   const previous = item.previousElementSibling
   const tag = (item.parentNode as Element).localName
   const last = previous?.lastElementChild
@@ -85,11 +85,11 @@ const listCommand = (tag: string): CommandSpec => ({
   isActive: (editor: Editor) => isLineActive(editor, (line) => inList(line, tag)),
 })
 
-const itemsCommand = (move: (editor: Editor, item: Element) => unknown): CommandSpec => ({
+const itemsCommand = (move: (item: Element, editor: Editor) => unknown): CommandSpec => ({
   run: (editor: Editor) =>
     keepSelection(editor, () => {
       for (const item of topItems(editor)) {
-        move(editor, item)
+        move(item, editor)
       }
     }),
   isEnabled: (editor: Editor) => selectedLines(editor).some(isItem),
@@ -132,7 +132,7 @@ export const lists = (): Module => ({
     bulletList: listCommand('ul'),
     orderedList: listCommand('ol'),
     indentList: itemsCommand(indent),
-    outdentList: itemsCommand(outdent),
+    outdentList: itemsCommand((item, editor) => outdent(editor, item)),
   },
   onBeforeInput: (event, editor) => exitItem(editor, event.inputType),
   onKeyDown(event, editor) {
