@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-17
+
+### Fixed
+
+- A mark turned off (or on) on a collapsed caret survives Enter: after `Mod-b` off at the end of bold text, the new paragraph or list item is typed plain and the toolbar `aria-pressed` stays off; the same for italic and underline.
+
 ## [0.1.1] - 2026-11-17
 
 ### Fixed
@@ -82,7 +88,8 @@ First preview release for integration testing; link, paste, Markdown and the def
 - `underline`, `heading` (levels configurable), `lists` (bullet/ordered, indent/outdent), `history` (undo/redo), `placeholder` and `characterCount` modules.
 - `./vue` subpath: `useEditor`, `useEditorState`, `EditorContent` and `WysiwygEditor` with `v-model` (emits `''` when empty, keeps the caret on echoed values), SSR safe.
 
-[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/einhasad/vue-wysiwyg/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/einhasad/vue-wysiwyg/releases/tag/v0.0.1

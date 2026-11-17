@@ -63,11 +63,16 @@ export type MarkAttributes = Readonly<Record<string, string>>
 
 type StoredMarks = Map<string, MarkAttributes | null>
 
-const storedMarks = new WeakMap<Editor, readonly [Node, number, StoredMarks]>()
+const storedMarks = new WeakMap<Editor, readonly [Node | null, number, StoredMarks]>()
 
 const storedAt = (editor: Editor, range: Range | null): StoredMarks | undefined => {
   const [node, offset, marks] = storedMarks.get(editor) ?? []
-  if (range?.collapsed && range.startContainer === node && range.startOffset === offset) {
+  if (
+    marks &&
+    range?.collapsed &&
+    (node === null || (range.startContainer === node && range.startOffset === offset))
+  ) {
+    storedMarks.set(editor, [range.startContainer, range.startOffset, marks])
     return marks
   }
   storedMarks.delete(editor)
@@ -157,8 +162,11 @@ export function toggleMark(editor: Editor, tag: string, attributes: MarkAttribut
 export function typeWithStoredMarks(event: InputEvent, editor: Editor): boolean {
   const range = editor.selection.range()
   const marks = storedAt(editor, range)
-  const { data } = event
-  if (event.inputType !== 'insertText' || !data || !marks) {
+  const { data, inputType } = event
+  if (inputType === 'insertParagraph' && marks) {
+    storedMarks.set(editor, [null, 0, marks])
+  }
+  if (inputType !== 'insertText' || !data || !marks) {
     return false
   }
   storedMarks.delete(editor)

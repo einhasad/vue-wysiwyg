@@ -133,6 +133,53 @@ describe('stored marks on a collapsed caret', () => {
     expect(editor.getHTML()).toBe('<p><strong>bold</strong></p><p>x</p>')
   })
 
+  it('carries a mark toggled off through Enter into the new paragraph', () => {
+    const editor = markEditor('<p><strong><em>Includes:</em></strong></p>')
+    select(textOf(editor, [0, 0, 0, 0]), 9)
+    editor.exec('bold')
+    expect(beforeInput(editor, 'insertParagraph').defaultPrevented).toBe(false)
+    editor.root.insertAdjacentHTML('beforeend', '<p><strong><em><br></em></strong></p>')
+    select(editor.root.querySelectorAll('em')[1] as Node, 0)
+    expect(editor.isActive('bold')).toBe(false)
+    expect(editor.isActive('italic')).toBe(true)
+    type(editor, 'x')
+    expect(editor.getHTML()).toBe('<p><strong><em>Includes:</em></strong></p><p><em>x</em></p>')
+    expect(editor.isActive('bold')).toBe(false)
+  })
+
+  it('carries a mark toggled on through Enter on an empty paragraph', () => {
+    const editor = markEditor('<p><br></p>')
+    select(editor.root.firstChild as Node, 0)
+    editor.exec('bold')
+    beforeInput(editor, 'insertParagraph')
+    editor.root.insertAdjacentHTML('beforeend', '<p><br></p>')
+    select(editor.root.lastChild as Node, 0)
+    expect(editor.isActive('bold')).toBe(true)
+    type(editor, 'x')
+    expect(editor.getHTML()).toBe('<p><br></p><p><strong>x</strong></p>')
+  })
+
+  it('drops carried marks when the selection after Enter is not collapsed', () => {
+    const editor = markEditor('<p><strong>ab</strong></p>')
+    select(textOf(editor, [0, 0, 0]), 2)
+    editor.exec('bold')
+    beforeInput(editor, 'insertParagraph')
+    select(textOf(editor, [0, 0, 0]), 0, textOf(editor, [0, 0, 0]), 2)
+    expect(editor.isActive('bold')).toBe(true)
+    select(textOf(editor, [0, 0, 0]), 2)
+    expect(editor.isActive('bold')).toBe(true)
+  })
+
+  it('carries nothing through Enter without stored marks', () => {
+    const editor = markEditor('<p><strong>ab</strong></p>')
+    select(textOf(editor, [0, 0, 0]), 2)
+    beforeInput(editor, 'insertParagraph')
+    editor.root.insertAdjacentHTML('beforeend', '<p><br></p>')
+    select(editor.root.lastChild as Node, 0)
+    expect(editor.isActive('bold')).toBe(false)
+    expect(type(editor, 'x').defaultPrevented).toBe(false)
+  })
+
   it('is one undo step', () => {
     const editor = markEditor('<p>a</p>', [history()])
     select(textOf(editor, [0, 0]), 1)
