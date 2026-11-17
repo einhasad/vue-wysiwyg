@@ -3,6 +3,7 @@ import { createEditor } from '../../core/editor.js'
 import { defineModule } from '../../core/define-module.js'
 import { htmlFormat } from '../../core/html-format.js'
 import type { Editor, Module } from '../../core/types.js'
+import { lists } from '../../modules/lists.js'
 import { beforeInput, dispatch, keyDown, mountEditor, select, textOf } from './helpers.js'
 
 const commandModule = (
@@ -10,6 +11,9 @@ const commandModule = (
   run: (editor: Editor) => boolean = vi.fn(() => true),
   extra: Partial<Module> = {},
 ): Module => defineModule({ name, commands: { [name]: { run } }, ...extra })
+
+const nextFrame = async (): Promise<number> =>
+  new Promise((resolve) => requestAnimationFrame(resolve))
 
 afterEach(() => {
   document.body.replaceChildren()
@@ -367,6 +371,56 @@ describe('focus, blur, selection and destroy', () => {
     document.dispatchEvent(new Event('selectionchange'))
     await new Promise((resolve) => requestAnimationFrame(resolve))
     expect(selection).toHaveBeenCalledOnce()
+  })
+
+  it('emits selection once when the selection leaves the root and ignores later outside changes', async () => {
+    const editor = mountEditor({ content: '<ul><li>item</li></ul>', modules: [lists()] })
+    const selection = vi.fn()
+    editor.on('selection', selection)
+    select(textOf(editor, [0, 0, 0]), 2)
+    document.dispatchEvent(new Event('selectionchange'))
+    await nextFrame()
+    expect(editor.isActive('bulletList')).toBe(true)
+    const outside = document.body.appendChild(document.createTextNode('outside'))
+    select(outside, 1)
+    document.dispatchEvent(new Event('selectionchange'))
+    await nextFrame()
+    select(outside, 3)
+    document.dispatchEvent(new Event('selectionchange'))
+    await nextFrame()
+    expect(selection).toHaveBeenCalledTimes(2)
+    expect(editor.selection.range()).toBeNull()
+    expect(editor.isActive('bulletList')).toBe(false)
+  })
+
+  it('drops the selection left in the root when the focus moves into an outside input', async () => {
+    const editor = mountEditor({ content: '<ul><li>item</li></ul>', modules: [lists()] })
+    const input = document.body.appendChild(document.createElement('input'))
+    const selection = vi.fn()
+    select(textOf(editor, [0, 0, 0]), 2)
+    document.dispatchEvent(new Event('selectionchange'))
+    await nextFrame()
+    editor.on('selection', selection)
+    editor.root.dispatchEvent(new FocusEvent('blur', { relatedTarget: input }))
+    document.dispatchEvent(new Event('selectionchange'))
+    await nextFrame()
+    expect(selection).toHaveBeenCalledOnce()
+    expect(editor.selection.range()).toBeNull()
+    expect(editor.isActive('bulletList')).toBe(false)
+  })
+
+  it('keeps the selection when the focus moves to a button and refreshes on focus', async () => {
+    const editor = mountEditor({ content: '<ul><li>item</li></ul>', modules: [lists()] })
+    const button = document.body.appendChild(document.createElement('button'))
+    const selection = vi.fn()
+    editor.on('selection', selection)
+    select(textOf(editor, [0, 0, 0]), 2)
+    editor.root.dispatchEvent(new FocusEvent('blur', { relatedTarget: button }))
+    await nextFrame()
+    editor.root.dispatchEvent(new FocusEvent('focus'))
+    await nextFrame()
+    expect(selection).toHaveBeenCalledTimes(2)
+    expect(editor.isActive('bulletList')).toBe(true)
   })
 
   it('normalizes without a document selection', () => {

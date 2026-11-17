@@ -61,6 +61,29 @@ describe('useEditorState', () => {
     expect(state.value).toBe(true)
   })
 
+  it('recomputes once the selection leaves the editor', async () => {
+    const element = document.body.appendChild(document.createElement('div'))
+    const created = createEditor({
+      element,
+      content: '<p><strong>abc</strong></p>',
+      modules: [bold()],
+    })
+    const selector = vi.fn((current: Editor) => current.isActive('bold'))
+    const { state } = mountState(shallowRef<Editor | null>(created), selector)
+    document.getSelection()?.collapse(element.querySelector('strong')?.firstChild as Text, 1)
+    document.dispatchEvent(new Event('selectionchange'))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    expect(state.value).toBe(true)
+    const outside = document.body.appendChild(document.createTextNode('outside'))
+    for (const offset of [1, 2]) {
+      document.getSelection()?.collapse(outside, offset)
+      document.dispatchEvent(new Event('selectionchange'))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    }
+    expect(state.value).toBe(false)
+    expect(selector).toHaveBeenCalledTimes(3)
+  })
+
   it('recomputes when readonly changes', () => {
     const created = createEditor({ content: '<p>a</p>', modules: [bold()] })
     const { state } = mountState(shallowRef<Editor | null>(created), (current) => ({

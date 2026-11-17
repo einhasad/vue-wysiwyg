@@ -45,6 +45,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   let composing = false
   let internalDrag = false
   let frame = 0
+  let selectionInside = false
 
   for (const module of modules) {
     for (const [name, spec] of Object.entries(module.commands ?? {})) {
@@ -193,6 +194,17 @@ export function createEditor(options: EditorOptions = {}): Editor {
     return done
   }
 
+  const onSelectionChange = (): void => {
+    frame ||= requestAnimationFrame(() => {
+      const wasInside = selectionInside
+      frame = 0
+      selectionInside = !!selection.range()
+      if (wasInside || selectionInside) {
+        emit('selection')
+      }
+    })
+  }
+
   const handlers: Readonly<Record<string, (event: never) => void>> = {
     beforeinput(event: InputEvent) {
       const type = event.inputType
@@ -276,19 +288,15 @@ export function createEditor(options: EditorOptions = {}): Editor {
     },
     focus(event: FocusEvent) {
       emit('focus', event)
+      onSelectionChange()
     },
     blur(event: FocusEvent) {
       emit('blur', event)
+      if (typeof (event.relatedTarget as HTMLInputElement | null)?.selectionStart === 'number') {
+        domSelection()?.removeAllRanges()
+      }
+      onSelectionChange()
     },
-  }
-
-  const onSelectionChange = (): void => {
-    if (!frame && selection.range()) {
-      frame = requestAnimationFrame(() => {
-        frame = 0
-        emit('selection')
-      })
-    }
   }
 
   const editor: Editor = {

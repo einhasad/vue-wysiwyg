@@ -173,6 +173,22 @@ describe('EditorToolbar', () => {
     expect(button(wrapper, 'Heading 3').getAttribute('aria-pressed')).toBe('false')
   })
 
+  it('clears aria-pressed when the focus leaves for an outside input and restores the caret', async () => {
+    const { editor, wrapper } = mountToolbar('<ul><li>item</li></ul>')
+    select(editor.root.querySelector('li')?.firstChild as Text, 2)
+    await selectionChange()
+    expect(button(wrapper, 'Bulleted list').getAttribute('aria-pressed')).toBe('true')
+
+    const input = document.body.appendChild(document.createElement('input'))
+    editor.root.dispatchEvent(new FocusEvent('blur', { relatedTarget: input }))
+    await selectionChange()
+    expect(button(wrapper, 'Bulleted list').getAttribute('aria-pressed')).toBe('false')
+    expect(button(wrapper, 'Bulleted list').getAttribute('aria-disabled')).toBe('false')
+
+    button(wrapper, 'Bulleted list').click()
+    expect(editor.getHTML()).toBe('<p>item</p>')
+  })
+
   it('runs the command on click and keeps the editor selection on mousedown', async () => {
     const { editor, wrapper } = mountToolbar()
     selectText(editor, 0, 2)

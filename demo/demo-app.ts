@@ -18,9 +18,11 @@ import '@einhasad-vue/vue-wysiwyg/theme.css'
 //   <template #toolbar="{ editor }"><EditorToolbar :editor="editor" /></template>
 // </WysiwygEditor>
 
-// Rendering stored HTML elsewhere? Sanitize where it reaches the DOM:
-import { sanitize } from '@einhasad-vue/vue-wysiwyg/sanitize'
-const safeHtml = sanitize(storedHtml)`
+// Rendering stored HTML elsewhere? Sanitize where it reaches the DOM,
+// with the schema of the modules the editor uses:
+import { createSchema, sanitize } from '@einhasad-vue/vue-wysiwyg/sanitize'
+const schema = createSchema([bold(), italic()])
+const safeHtml = sanitize(storedHtml, { schema })`
 
 const preferredScheme = (): ColorScheme =>
   window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

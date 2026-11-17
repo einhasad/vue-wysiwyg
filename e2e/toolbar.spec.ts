@@ -141,6 +141,24 @@ test.describe('toolbar', () => {
     await expect(tool(page, 'Undo')).not.toHaveAttribute('aria-pressed')
   })
 
+  test('aria-pressed clears when the caret moves into an outside input', async ({ page }) => {
+    await open(page, '<ul><li>item</li></ul>')
+    await page.evaluate(() => {
+      const input = document.createElement('input')
+      input.id = 'outside'
+      input.setAttribute('aria-label', 'Outside')
+      document.body.append(input)
+    })
+    await editorBox(page).locator('li').click()
+    await expect(tool(page, 'Bulleted list')).toHaveAttribute('aria-pressed', 'true')
+    await page.locator('#outside').click()
+    await expect(tool(page, 'Bulleted list')).toHaveAttribute('aria-pressed', 'false')
+    await page.keyboard.type('typed')
+    await expect(page.locator('#outside')).toHaveValue('typed')
+    await editorBox(page).locator('li').click()
+    await expect(tool(page, 'Bulleted list')).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('readonly disables every button', async ({ page }) => {
     await open(page, '<p>locked</p>', { extra: '&readonly' })
     for (const button of await toolbar(page).getByRole('button').all()) {

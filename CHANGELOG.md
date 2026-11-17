@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-17
+
+### Fixed
+
+- The demo and README sanitize stored HTML with the editor schema (`sanitize(html, { schema })`); the default schema keeps only `p` and `br`.
+- The editor emits `selection` once when the selection leaves it (another input, the page), so `isActive` and the toolbar `aria-pressed` turn off; in Firefox the editor selection is dropped when the focus moves into an outside text field, as in Chrome and Safari.
+
 ## [0.1.0] - 2026-11-16
 
 ### Added
@@ -75,6 +82,7 @@ First preview release for integration testing; link, paste, Markdown and the def
 - `underline`, `heading` (levels configurable), `lists` (bullet/ordered, indent/outdent), `history` (undo/redo), `placeholder` and `characterCount` modules.
 - `./vue` subpath: `useEditor`, `useEditorState`, `EditorContent` and `WysiwygEditor` with `v-model` (emits `''` when empty, keeps the caret on echoed values), SSR safe.
 
-[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/einhasad/vue-wysiwyg/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/einhasad/vue-wysiwyg/releases/tag/v0.0.1

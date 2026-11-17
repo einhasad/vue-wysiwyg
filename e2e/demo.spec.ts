@@ -189,28 +189,54 @@ test('the custom toolbar turns a paragraph into h2 in the restricted editor', as
   )
 })
 
-test(
-  'npm.html runs the published 0.0.1 package from the CDN',
-  { tag: '@network' },
-  async ({ page }) => {
-    await page.goto('./npm.html?v=0.0.1')
-    await expect(page.locator('body')).toHaveAttribute('data-ready', 'true', { timeout: 30_000 })
-    await expect(page.locator('#requested-version')).toHaveText('0.0.1')
-    await expect(page.locator('#loaded-version')).toHaveText('0.0.1')
-    await expect(page.locator('#toolbar-status')).toHaveText('none (/theme not in this version)')
+test('the usage snippet sanitizes stored HTML with the schema of the editor modules', async ({
+  page,
+}) => {
+  await page.goto('./')
+  const usage = page.getByRole('region', { name: 'Usage' })
+  await expect(usage).toContainText('const schema = createSchema([bold(), italic()])')
+  await expect(usage).toContainText('sanitize(storedHtml, { schema })')
+})
 
-    const textbox = page.getByRole('textbox', { name: 'Published editor' })
-    await textbox.click()
-    await textbox.evaluate((root) => {
-      document.getSelection()?.selectAllChildren(root.lastElementChild as Element)
-      document.getSelection()?.collapseToEnd()
-    })
-    await page.keyboard.type(' from npm')
-    await page.keyboard.press('Enter')
-    await page.keyboard.type('second line')
+const PUBLISHED = [
+  { version: '0.0.1', toolbar: 'none (/theme not in this version)', toolbarCount: 0 },
+  { version: '0.1.0', toolbar: 'EditorToolbar from /theme', toolbarCount: 1 },
+] as const
 
-    await expect(page.locator('#output')).toHaveText(
-      '<p>Published <strong>package</strong> page from npm</p><p>second line</p>',
-    )
-  },
-)
+for (const { version, toolbar, toolbarCount } of PUBLISHED) {
+  test(
+    `npm.html runs the published ${version} package from jsDelivr`,
+    { tag: '@network' },
+    async ({ page }) => {
+      await page.goto(`./npm.html?v=${version}`)
+      await expect(page.locator('body')).toHaveAttribute('data-ready', 'true', {
+        timeout: 30_000,
+      })
+      await expect(page.locator('#requested-version')).toHaveText(version)
+      await expect(page.locator('#loaded-version')).toHaveText(version)
+      await expect(page.locator('#toolbar-status')).toHaveText(toolbar)
+      await expect(page.getByRole('toolbar')).toHaveCount(toolbarCount)
+
+      const textbox = page.getByRole('textbox', { name: 'Published editor' })
+      await textbox.click()
+      await textbox.evaluate((root) => {
+        document.getSelection()?.selectAllChildren(root.lastElementChild as Element)
+        document.getSelection()?.collapseToEnd()
+      })
+      await page.keyboard.type(' from npm')
+      await page.keyboard.press('Enter')
+      await page.keyboard.type('second line')
+
+      await expect(page.locator('#output')).toHaveText(
+        '<p>Published <strong>package</strong> page from npm</p><p>second line</p>',
+      )
+    },
+  )
+}
+
+test('npm.html resolves latest to a concrete version', { tag: '@network' }, async ({ page }) => {
+  await page.goto('./npm.html')
+  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true', { timeout: 30_000 })
+  await expect(page.locator('#requested-version')).toHaveText('latest')
+  await expect(page.locator('#loaded-version')).toHaveText(/^\d+\.\d+\.\d+/)
+})

@@ -40,7 +40,7 @@ npm install @einhasad-vue/vue-wysiwyg
 
 The package is ESM only (Node 20 or newer). The [live demo](https://einhasad.github.io/vue-wysiwyg/)
 runs the current source; the [CDN smoke test](https://einhasad.github.io/vue-wysiwyg/npm.html) loads the published
-package from esm.sh and jsDelivr without a build step (`?v=<version>` picks a version, `latest` by default).
+package from jsDelivr without a build step (`?v=<version>` picks a version, `latest` by default).
 
 ## Quick start: Vue component
 
@@ -202,7 +202,7 @@ export function renderArticle(element: HTMLElement, storedHtml: string): void {
   element.innerHTML = sanitize(storedHtml, { schema })
 }
 
-sanitize('<p onclick="x()">safe</p><script>alert(1)</script>') // '<p>safe</p>'
+sanitize('<p onclick="x()">safe</p><script>alert(1)</script>', { schema }) // '<p>safe</p>'
 ```
 
 ```vue

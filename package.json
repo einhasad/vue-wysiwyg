@@ -1,6 +1,6 @@
 {
   "name": "@einhasad-vue/vue-wysiwyg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tiny, modular, XSS-safe WYSIWYG editor for Vue 3 with a headless core, Markdown and HTML input/output",
   "keywords": [
     "vue",
