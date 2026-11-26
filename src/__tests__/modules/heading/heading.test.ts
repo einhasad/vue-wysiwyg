@@ -136,6 +136,40 @@ describe('heading module', () => {
     expect(editor.getHTML()).toBe('<ul><li>one</li><li>two</li></ul>')
   })
 
+  it('is disabled when the caret is in a list item', () => {
+    const editor = headingEditor('<ul><li>one</li></ul>')
+    caretIn(editor, [0, 0, 0], 1)
+    expect(editor.can('heading')).toBe(false)
+  })
+
+  it('is disabled when only list items are selected', () => {
+    const editor = headingEditor('<ul><li>one</li><li>two</li></ul>')
+    select(textOf(editor, [0, 0, 0]), 0, textOf(editor, [0, 1, 0]), 2)
+    expect(editor.can('heading')).toBe(false)
+  })
+
+  it('is enabled when the selection mixes a paragraph and list items', () => {
+    const editor = headingEditor('<p>one</p><ul><li>two</li></ul>')
+    select(textOf(editor, [0, 0]), 0, textOf(editor, [1, 0, 0]), 2)
+    expect(editor.can('heading')).toBe(true)
+  })
+
+  it('stays enabled when the selection is outside the editor', () => {
+    const editor = headingEditor('<ul><li>one</li></ul>')
+    const outside = document.body.appendChild(document.createElement('p'))
+    outside.textContent = 'page'
+    select(outside.firstChild as Node, 1)
+    expect(editor.can('heading')).toBe(true)
+  })
+
+  it('is enabled when the caret is in a paragraph or a heading', () => {
+    const editor = headingEditor('<p>one</p><h2>two</h2>')
+    caretIn(editor, [0, 0], 1)
+    expect(editor.can('heading')).toBe(true)
+    caretIn(editor, [1, 0], 1)
+    expect(editor.can('heading')).toBe(true)
+  })
+
   it('rejects a level that is not enabled', () => {
     const editor = headingEditor('<p>a</p>', [2, 3])
     caretIn(editor, [0, 0])

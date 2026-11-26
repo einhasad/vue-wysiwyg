@@ -84,6 +84,8 @@ export const headings = heading({ levels: [2, 3] })
 
 - Command `heading` with the level as argument: `editor.exec('heading', 2)`. It turns the selected blocks into that
   heading, or back into paragraphs when they all already are. A level outside `levels` returns `false`.
+- `editor.can('heading')` is `false` when the selection holds only list items (lists keep their items; a mixed
+  selection changes only its paragraphs and headings).
 - `editor.isActive('heading', 2)` is true when the selected lines are `h2`.
 - Keys: `Mod-Alt-1` to `Mod-Alt-6` (allowed levels only).
 - Pasted or loaded headings of a level outside `levels` become paragraphs.

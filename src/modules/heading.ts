@@ -1,5 +1,5 @@
 import type { Editor, Module } from '../core/types.js'
-import { isLineActive, setBlocks } from '../shared/blocks.js'
+import { isLineActive, kindOf, selectedLines, setBlocks } from '../shared/blocks.js'
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -31,6 +31,10 @@ export const heading = ({ levels = ALL_LEVELS }: HeadingOptions = {}): Module =>
         levels.includes(level) && setBlocks(editor, tagOf(level)),
       isActive: (editor: Editor, level?: HeadingLevel) =>
         isLineActive(editor, (line) => line.localName === tagOf(level)),
+      isEnabled: (editor: Editor) => {
+        const lines = selectedLines(editor)
+        return !lines.length || lines.some((line) => kindOf(editor, line) === 'block')
+      },
     },
   },
   onKeyDown(event, editor) {
