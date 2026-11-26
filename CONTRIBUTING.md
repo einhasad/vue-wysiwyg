@@ -51,6 +51,40 @@ While working, run only what you touch: `npx vitest run src/__tests__/modules/li
   `src/__tests__/docs/snippets.test.ts`, so keep them complete and compilable.
 - **Changelog**: add a line under `[Unreleased]` in `CHANGELOG.md`.
 
+## Releasing (maintainers)
+
+Releases are published by `.github/workflows/publish.yml` with npm trusted publishing (OIDC) and provenance; no npm
+token is stored in the repository. The package's trusted publisher on npmjs.com must be GitHub Actions, repository
+`einhasad/vue-wysiwyg`, workflow `publish.yml`.
+
+1. Version commit: bump `version` in `package.json` and `package-lock.json` together and rename `## [Unreleased]` to
+   `## [X.Y.Z] - YYYY-MM-DD`.
+2. Push `main` and wait until CI and the Pages deploy are green for that commit (`gh run watch`).
+3. Create the release on that exact commit (never `--target main` before the push):
+
+   ```sh
+   gh release create vX.Y.Z --target <sha> --title vX.Y.Z --notes-file <changelog-section.md>
+   ```
+
+   The release event runs the publish workflow from the tag. It runs every gate and then `npm publish --provenance`
+   (a prerelease tag `vX.Y.Z-…` publishes under `next`).
+
+4. If the run fails for an infrastructure reason, start it again by hand instead of re-running the old job; the
+   workflow stops early when that version is already on npm:
+
+   ```sh
+   gh workflow run publish.yml --ref main -f tag=vX.Y.Z
+   ```
+
+5. Check the run log for "Signed provenance statement" and that the attestation exists:
+
+   ```sh
+   npm view @einhasad-vue/vue-wysiwyg@X.Y.Z dist.attestations
+   ```
+
+A published version can never be reused. A broken release gets a fixed patch release and `npm deprecate` on the bad
+version; never unpublish.
+
 ## Manual device and IME checklist
 
 Automated tests cannot drive real mobile keyboards and IMEs. Run this list on real devices before a release that

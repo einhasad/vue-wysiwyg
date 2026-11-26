@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An `<a>` without `href` (kept when the sanitizer rejects a URL such as `javascript:`) is not treated as a link: `isActive('link')` is `false`, the link popover opens with an empty field and no "Remove link" button, and `theme.css` colours only `a[href]`. Stored HTML is unchanged. Custom CSS on `[role='textbox'] a` keeps working.
 - `theme.css` draws the placeholder at the font size and weight of an empty heading (CSS `:has()`).
 - If you overrode `--vw-border` to restyle the link URL field, override `--vw-input-border` instead.
+- Releases are published from GitHub Actions with npm trusted publishing (OIDC) and a provenance attestation; 0.1.1 and 0.1.2 have none.
 - Size limits raised once for the fixes in this release: core is about 5 kB gzipped (5.2 kB), core + `starterKit` 9.4 kB.
 
 ### Fixed
