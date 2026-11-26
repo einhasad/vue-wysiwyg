@@ -242,7 +242,8 @@ the same:
   whitespace run that contains a line break becomes one space, and it is removed at the start and end of a block.
 - **Links**: `rel="noopener noreferrer nofollow"` is a fixed attribute of every link and can not be removed by
   content. `link({ target: '_blank' })` (or `starterKit({ link: { target: '_blank' } })`) adds a fixed `target` to
-  every link; without it a `target` in stored HTML is dropped.
+  every link; without it a `target` in stored HTML is dropped. A link whose URL `safeUrl` rejects keeps its text and
+  its fixed attributes but loses `href` (`<a rel="…">text</a>`); it is not a link.
 
 ```ts
 import { createEditor } from '@einhasad-vue/vue-wysiwyg'
@@ -310,8 +311,9 @@ replaced through the `messages` prop (i18n). Icons are replaced through the `#ic
 - `EditorToolbar` follows the WAI-ARIA toolbar pattern: one tab stop, roving `tabindex`, ArrowLeft, ArrowRight, Home
   and End, `aria-pressed` and `aria-disabled` from the editor state, and `aria-controls` pointing to the editor.
   Alt+F10 in the editor moves focus to the toolbar and Escape returns it; there is no keyboard trap.
-- The link popover (`Mod-k` or the link button) is a labelled group. An unsafe URL is reported with `aria-invalid`
-  and a described error message.
+- The link popover (`Mod-k` or the link button) is a labelled group; its URL field has a `for`/`id` label. An unsafe
+  URL is reported with `aria-invalid` and a described error message. A URL inserted at a collapsed caret is linked and
+  the caret is placed after the new link.
 - Toolbar buttons do not take the editor selection away (`mousedown` is prevented).
 - The e2e suite runs axe on the themed editor in light, dark, readonly and popover states, with 0 violations.
 

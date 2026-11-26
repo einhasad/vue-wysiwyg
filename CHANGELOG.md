@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Undo and redo emit `update` (and `WysiwygEditor` emits `update:modelValue`) once instead of twice; `exec` no longer emits a second `update` when the command already committed through `setHTML` or `transact`. Nothing to do unless you counted two events per undo or redo.
 - Block containers outside the schema become paragraphs like `div`, so words from adjacent blocks are no longer glued (`<section>Steel</section><section>bumper</section>` was `<p>Steelbumper</p>`, now `<p>Steel</p><p>bumper</p>`). Affects `address`, `article`, `aside`, `blockquote`, `caption`, `dd`, `dt`, `figcaption`, `figure`, `footer`, `h1`-`h6`, `header`, `li`, `main`, `nav`, `pre`, `section`, `td` and `th` when no module contributes or renames the tag, in `sanitize`, `normalizeHTML`, initial content, `setHTML` and paste; `createSchema().rename` lists them. HTML the editor wrote loads byte-identical. A `pre` still turns its line breaks into spaces. Nothing to do unless you relied on the glued text or expect `schema.rename` to hold only `div`.
 - `editor.can('heading')` is `false` when the selection holds only list items (the command did nothing there), so `EditorToolbar` shows H1-H6 with `aria-disabled="true"` in a list item. With no selection in the editor it stays `true`. Nothing to do unless you relied on `can('heading')` being always `true`.
+- The `link` command makes one `<a>` for a selection inside one paragraph, heading or list item, even across bold, italic, underline or other links (`<a href>…<strong>wysiwyg</strong>: a <em>tiny</em></a>` instead of one `<a>` per formatted piece). Links inside the selection are replaced; a link the selection starts or ends in is split. A selection that is exactly the text of one mark is linked inside it, and a selection across several blocks gets one link per block, as before. Stored HTML loads unchanged; only newly linked text is shaped differently.
+- An `<a>` without `href` (kept when the sanitizer rejects a URL such as `javascript:`) is not treated as a link: `isActive('link')` is `false`, the link popover opens with an empty field and no "Remove link" button. Stored HTML is unchanged.
 
 ### Fixed
 
@@ -21,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `normalizeElement` (live editor DOM) unwraps a renamed element around blocks like `sanitize` does: `<div><p>a</p>b</div>` and `<b><p>a</p><p>b</p></b>` become `<p>a</p><p>b</p>` instead of `<p>ab</p>` / `<p><strong>ab</strong></p>`.
 - `paste()`: a Word numbered list pasted right after a bulleted list (or the reverse) stays a separate list; a new list starts when the Word list id or the top-level marker type changes.
 - `paste()`: Word `<o:p>` placeholders are removed, so an empty Word line pastes as `<p><br></p>` (was `<p>&nbsp;</p>`) and no trailing `&nbsp;` follows pasted Word text.
+- Link popover: a URL inserted as link text at a collapsed caret no longer stays selected; the caret is placed after the new link.
+- Link popover: the URL field is linked to its label with `for`/`id`.
 
 ## [0.1.2] - 2026-11-17
 

@@ -7,6 +7,14 @@ const emits: { close: () => boolean } = { close: () => true }
 
 const BARE_DOMAIN = /^[\w-]+(\.[\w-]+)+([/?#:]|$)/
 
+const caretAfter = (node: Element | null | undefined): void => {
+  if (node) {
+    const caret = node.ownerDocument.createRange()
+    caret.setStartAfter(node)
+    node.ownerDocument.getSelection()?.collapse(caret.startContainer, caret.startOffset)
+  }
+}
+
 const withProtocol = (value: string): string =>
   BARE_DOMAIN.test(value.trim()) ? `https://${value.trim()}` : value
 
@@ -16,7 +24,6 @@ export const LinkPopover = defineComponent({
     editor: { type: Object as PropType<Editor>, required: true },
     /** Labels of the popover */
     messages: { type: Object as PropType<EditorMessages>, required: true },
-    /** Editor selection restored before the link is applied */
   },
   emits,
   setup(props, { emit }) {
@@ -24,9 +31,12 @@ export const LinkPopover = defineComponent({
     const input = shallowRef<HTMLInputElement | null>(null)
     const invalid = shallowRef(false)
     const errorId = useId()
+    const inputId = useId()
     const path = editor.selection.save()
     const start = editor.selection.range()?.startContainer
-    const anchor = (start?.nodeType === 1 ? (start as Element) : start?.parentElement)?.closest('a')
+    const anchor = (start?.nodeType === 1 ? (start as Element) : start?.parentElement)?.closest(
+      'a[href]',
+    )
     const href = shallowRef(anchor?.getAttribute('href') ?? '')
 
     const close = (): void => {
@@ -41,12 +51,14 @@ export const LinkPopover = defineComponent({
       if (url) {
         close()
         const range = editor.selection.range()
+        const inserted = range?.collapsed && !anchor ? new Text(url) : null
         editor.transact(() => {
-          if (range?.collapsed && !anchor) {
-            range.insertNode(new Text(url))
+          if (inserted) {
+            range?.insertNode(inserted)
           }
           editor.exec('link', url)
         })
+        caretAfter(inserted?.parentElement?.closest('a[href]'))
       }
     }
 
@@ -72,10 +84,11 @@ export const LinkPopover = defineComponent({
           },
         },
         [
-          h('label', [
+          h('label', { for: inputId }, [
             props.messages.linkUrl,
             h('input', {
               ref: input,
+              id: inputId,
               class: 'vw-input',
               type: 'text',
               inputmode: 'url',

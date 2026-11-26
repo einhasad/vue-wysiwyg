@@ -130,11 +130,18 @@ export const links = link({
 | `onShortcut` | `(editor: Editor) => void` | none: `Mod-k` is not handled |
 
 - Tag `a` with `href`. Every link gets `rel="noopener noreferrer nofollow"`, plus `target` when the option is set.
-- Command `link` with a URL links the selected text, or changes the URL of the link around the caret. With `null` it
-  removes the link around the caret or from the selected text. A collapsed caret outside a link creates nothing.
+- Command `link` with a URL links the selected text, or changes the URL of the link around the caret. A selection
+  inside one paragraph, heading or list item becomes one link around its formatting (`<a><strong>…</strong> …</a>`) and
+  replaces the links inside it; a selection that is exactly the text of one mark is linked inside that mark
+  (`<strong><a>…</a></strong>`), and a selection across several blocks gets one link per block. With `null` it removes
+  the link around the caret or from the selected text. A collapsed caret outside a link creates nothing.
 - Every URL goes through `safeUrl`: only `http`, `https`, `mailto`, `tel` and relative URLs pass by default (change
   this with the `urlSchemes` editor option). A rejected URL returns `false` and changes nothing.
 - `linkHref(editor)` returns the `href` of the link at the selection start, for prefilling a dialog.
+- Only an `a` with `href` counts as a link. When the sanitizer rejects the URL of a stored or pasted link, it keeps the
+  text in a bare `<a rel="…">` so stored HTML loads unchanged; there `isActive('link')` is `false`, `linkHref` is
+  `undefined` and the link popover edits it like plain text. Running `link` with a
+  URL on a caret inside it gives it that `href`; with `null` it is unwrapped.
 - Keys: `Mod-k` calls `onShortcut`. `EditorToolbar` from `./theme` handles `Mod-k` itself and opens its link popover.
 - The browser `insertLink` input type is routed to the `link` command.
 - Size: core + `link` 5.8 kB.

@@ -20,11 +20,41 @@ export function linkHref(editor: Editor): string | undefined {
   return activeMark(editor, 'a')?.getAttribute('href') ?? undefined
 }
 
+const wrapInLink = (editor: Editor, href: string): true => {
+  const range = editor.selection.range() as Range
+  const { startContainer: first, endContainer: last } = range
+  const document = editor.root.ownerDocument
+  const anchor = document.createElement('a')
+  anchor.setAttribute('href', href)
+  range.setStartBefore(first)
+  range.setEndAfter(last)
+  anchor.append(range.extractContents())
+  range.insertNode(anchor)
+  document.getSelection()?.setBaseAndExtent(first, 0, last, (last as Text).length)
+  return true
+}
+
 const setLink = (editor: Editor, url: string | null): boolean => {
   const href = url && safeUrl(url, editor.schema)
-  return url === null
-    ? setMarkAtCaret(editor, 'a', null)
-    : !!href && setMarkAtCaret(editor, 'a', { href })
+  const range = editor.selection.range()
+  return href &&
+    range?.collapsed === false &&
+    range.commonAncestorContainer !== editor.root &&
+    !range.cloneContents().querySelector('li')
+    ? setMarkAtCaret(editor, 'a', null) && wrapInLink(editor, href)
+    : url === null
+      ? setMarkAtCaret(editor, 'a', null)
+      : !!href && setMarkAtCaret(editor, 'a', { href })
+}
+
+const isLinkActive = (editor: Editor): boolean => {
+  const range = editor.selection.range()
+  return (
+    isMarkActive(editor, 'a') &&
+    ![...editor.root.querySelectorAll('a:not([href])')].some((anchor) =>
+      range?.intersectsNode(anchor),
+    )
+  )
 }
 
 export const link = ({ target, onShortcut }: LinkOptions = {}): Module => ({
@@ -42,7 +72,7 @@ export const link = ({ target, onShortcut }: LinkOptions = {}): Module => ({
   commands: {
     link: {
       run: setLink,
-      isActive: (editor: Editor) => isMarkActive(editor, 'a'),
+      isActive: isLinkActive,
     },
   },
   onKeyDown:

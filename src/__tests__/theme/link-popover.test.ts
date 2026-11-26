@@ -106,6 +106,35 @@ describe('LinkPopover', () => {
     expect(editor.can('undo')).toBe(false)
   })
 
+  it('places the caret after a link inserted at a collapsed caret', async () => {
+    const { editor, wrapper } = await openWithSelection('<p>abc</p>', 1, 1)
+    await typeUrl(wrapper, 'example.org')
+    press(urlInput(wrapper), 'Enter')
+    await nextTick()
+    const paragraph = editor.root.querySelector('p') as HTMLParagraphElement
+    const range = editor.selection.range() as Range
+    expect(editor.getHTML()).toBe(
+      `<p>a<a href="https://example.org" ${REL}>https://example.org</a>bc</p>`,
+    )
+    expect(range.collapsed).toBe(true)
+    expect([range.startContainer, range.startOffset]).toEqual([paragraph, 2])
+  })
+
+  it('places the caret after a link inserted inside bold text', async () => {
+    const { editor, wrapper } = mountToolbar('<p><strong>abc</strong></p>')
+    select(editor.root.querySelector('strong')?.firstChild as Text, 1)
+    keyDown(editor, { key: 'k', ctrlKey: true })
+    await nextTick()
+    await typeUrl(wrapper, 'https://x.dev')
+    press(urlInput(wrapper), 'Enter')
+    await nextTick()
+    const link = editor.root.querySelector('a') as HTMLAnchorElement
+    const range = editor.selection.range() as Range
+    expect(range.collapsed).toBe(true)
+    expect(link.contains(range.startContainer)).toBe(false)
+    expect(range.comparePoint(link, 0)).toBe(-1)
+  })
+
   it('does not insert text for an unsafe url at a collapsed caret', async () => {
     const { editor, wrapper } = await openWithSelection('<p>abc</p>', 1, 1)
     await typeUrl(wrapper, 'javascript:alert(1)')
@@ -246,6 +275,27 @@ describe('LinkPopover', () => {
     keyDown(editor, { key: 'k', ctrlKey: true })
     await nextTick()
     expect(urlInput(wrapper).value).toBe('https://el.example')
+  })
+
+  it('treats an anchor without href as plain text', async () => {
+    const { editor, wrapper } = mountToolbar('<p>x <a>abc</a></p>')
+    select(editor.root.querySelector('a')?.firstChild as Text, 1)
+    keyDown(editor, { key: 'k', ctrlKey: true })
+    await nextTick()
+    expect(urlInput(wrapper).value).toBe('')
+    expect(() => popoverButton(wrapper, 'Remove link')).toThrow()
+    await typeUrl(wrapper, 'https://x.dev')
+    press(urlInput(wrapper), 'Enter')
+    await nextTick()
+    expect(editor.root.querySelector('a[href="https://x.dev"]')?.textContent).toBe('https://x.dev')
+  })
+
+  it('links the url field to its label by id', async () => {
+    const { wrapper } = await openWithSelection('<p>abc</p>', 0, 2)
+    const { id } = urlInput(wrapper)
+    expect(id).not.toBe('')
+    expect(wrapper.get('.vw-link-popover label').attributes('for')).toBe(id)
+    expect(urlInput(wrapper).labels?.[0]?.textContent).toBe('URL')
   })
 
   it('has no remove button for a new link', async () => {
