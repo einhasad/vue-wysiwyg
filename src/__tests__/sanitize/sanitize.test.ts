@@ -2,7 +2,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import type { Module, TagRule } from '../../core/types.js'
 import { createEditor } from '../../core/editor.js'
-import { starterKit } from '../../modules/index.js'
+import { bold, heading, history, italic, lists, paste, starterKit } from '../../modules/index.js'
 import { normalizeHTML } from '../../normalize/index.js'
 import { createSchema, safeUrl, sanitize, sanitizeToFragment } from '../../sanitize/index.js'
 
@@ -300,6 +300,88 @@ describe('source whitespace', () => {
     ['<p>a <span>b\n</span>c</p>', '<p>a b c</p>'],
   ])('collapses pretty-printed whitespace in %j', (html, expected) => {
     expect(normalizeHTML(html, schema)).toBe(expected)
+  })
+})
+
+describe('block containers outside the schema', () => {
+  const schema = createEditor({ modules: starterKit() }).schema
+
+  it.each([
+    ['<section>Steel</section><section>bumper</section>', '<p>Steel</p><p>bumper</p>'],
+    ['<article>one</article><article>two</article>', '<p>one</p><p>two</p>'],
+    ['<blockquote>quote</blockquote><pre>pre\ntext</pre>', '<p>quote</p><p>pre text</p>'],
+    ['<blockquote><p>a</p><p>b</p></blockquote>after', '<p>a</p><p>b</p><p>after</p>'],
+    ['<dl><dt>Term</dt><dd>Def</dd></dl>', '<p>Term</p><p>Def</p>'],
+    [
+      '<table><caption>Cap</caption><tr><th>Steel</th><td>bumper</td></tr><tr><td><p>LED</p></td><td>bar</td></tr></table>',
+      '<p>Cap</p><p>Steel</p><p>bumper</p><p>LED</p><p>bar</p>',
+    ],
+    [
+      '<header>Top</header><main>Mid</main><footer>Bottom</footer>',
+      '<p>Top</p><p>Mid</p><p>Bottom</p>',
+    ],
+    ['<figure><figcaption>Cap</figcaption>Body</figure>', '<p>Cap</p><p>Body</p>'],
+    ['<nav>a</nav><aside>b</aside><address>c</address>', '<p>a</p><p>b</p><p>c</p>'],
+    ['<ul><li>a<blockquote>b</blockquote></li></ul>', '<ul><li>a<br>b</li></ul>'],
+  ])('keeps the text of %j in separate paragraphs', (html, expected) => {
+    expect(normalizeHTML(html, schema)).toBe(expected)
+  })
+
+  it('keeps words separate in sanitize output', () => {
+    expect(
+      sanitize('<section>Steel</section><section>bumper</section><blockquote>q</blockquote>after', {
+        schema,
+      }),
+    ).toBe('<p>Steel</p><p>bumper</p><p>q</p>after')
+  })
+
+  it('maps headings and list items to paragraphs when their module is absent', () => {
+    expect(sanitize('<h1>a</h1><h6>b</h6><ul><li>c</li><li>d</li></ul>')).toBe(
+      '<p>a</p><p>b</p><p>c</p><p>d</p>',
+    )
+  })
+
+  it('leaves a contributed or explicitly renamed container alone', () => {
+    const custom = createSchema([
+      tag('blockquote', { kind: 'block' }),
+      { name: 'rename', schema: { rename: { pre: 'blockquote' } } },
+    ])
+    expect(custom.rename.has('blockquote')).toBe(false)
+    expect(
+      sanitize('<blockquote>a</blockquote><pre>b</pre><section>c</section>', { schema: custom }),
+    ).toBe('<blockquote>a</blockquote><blockquote>b</blockquote><p>c</p>')
+  })
+})
+
+describe('stored editor output', () => {
+  const restrictedModules = (): Module[] => [
+    bold(),
+    italic(),
+    heading({ levels: [2] }),
+    lists(),
+    { name: 'bulletListsOnly', schema: { rename: { ol: 'ul' } } },
+    history(),
+    paste(),
+  ]
+
+  it.each([
+    [
+      'starterKit with link target',
+      () => starterKit({ link: { target: '_blank' } }),
+      '<h1>Release notes</h1><h2>Try it</h2><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6><p>This is <strong>vue-wysiwyg</strong>: a <em>tiny</em>, <u>modular</u> and XSS-safe editor for Vue 3 &amp; &lt;more&gt;.</p><p><br></p><p>Line one<br>line two  spaced</p><ul><li>Select text and press Ctrl+B.<ul><li>nested <strong><em>both</em></strong></li></ul></li><li>Second</li></ul><ol><li>one<ol><li>one.one</li></ol></li><li>two</li></ol><p>Read the <a href="https://github.com/einhasad/vue-wysiwyg" rel="noopener noreferrer nofollow" target="_blank">documentation</a> and <a href="mailto:a@b.c" rel="noopener noreferrer nofollow" target="_blank">mail</a>.</p>',
+    ],
+    [
+      'restricted schema',
+      restrictedModules,
+      '<h2>Standard build</h2><p>Only <strong>p</strong>, <strong>strong</strong>, <em>em</em>, <strong>ul/li</strong> and <strong>h2</strong> survive.</p><ul><li>Steel bumper<ul><li>LED light bar</li></ul></li><li>Winch</li></ul><p><br></p>',
+    ],
+    ['bold only', () => [bold()], '<p>a <strong>b</strong></p><p><br></p><p>c</p>'],
+  ])('round-trips 0.1.2 output of the %s byte-identical', (_name, modules, stored) => {
+    const editor = createEditor({ modules: modules() })
+    expect(sanitize(stored, { schema: editor.schema })).toBe(stored)
+    expect(normalizeHTML(stored, editor.schema)).toBe(stored)
+    editor.setHTML(stored)
+    expect(editor.getHTML()).toBe(stored)
   })
 })
 

@@ -45,7 +45,7 @@ Protection happens at render time: HTML is sanitized exactly where it is inserte
 - Input is parsed in an inert document; the live document never parses untrusted HTML.
 - Output is a rebuilt tree of fresh nodes. Nothing is filtered in place and the result is never re-parsed inside the sanitizer.
 - Only HTML-namespace elements whose tag is in the schema are kept; SVG, MathML, comments and processing instructions are removed.
-  `script`, `style`, `template`, `iframe`, `object`, `embed`, `noscript`, `form`, raw-text elements and similar are removed with their content; other unknown elements are unwrapped.
+  `script`, `style`, `template`, `iframe`, `object`, `embed`, `noscript`, `form`, raw-text elements and similar are removed with their content; other unknown elements are unwrapped and keep their text, and `div` and common block containers (`section`, `blockquote`, `pre`, table cells and similar) become `p`.
 - Attributes are copied by iterating the schema allow-list, never the source attributes. Event handlers, `style`, `srcdoc` and `formaction` can not be allow-listed.
 - Every URL attribute goes through `safeUrl`: control characters and whitespace are stripped before the scheme check, only `http`, `https`, `mailto`, `tel` and relative URLs pass by default, and protocol-relative URLs are rejected unless enabled. `javascript:`, `vbscript:` and `data:` are rejected even when listed in `urlSchemes`.
 - `href`, `src` and `action` are URL attributes on every tag, whether or not a module lists them in `urlAttrs`; `srcset` can not be allow-listed. When two modules contribute the same tag, their rules are merged: allowed and URL attributes are united and the first module's `fixedAttrs` win, so a later module can not drop a URL check or a fixed `rel`.

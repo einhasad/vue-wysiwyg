@@ -71,6 +71,8 @@ describe('normalizeElement', () => {
       '<p>ab</p>',
     ],
     ['unknown root wrappers unwrapped', '<section><p>a</p>b</section>', '<p>a</p><p>b</p>'],
+    ['a div around paragraphs unwrapped', '<div><p>a</p>b</div>', '<p>a</p><p>b</p>'],
+    ['an aliased mark around paragraphs unwrapped', '<b><p>a</p><p>b</p></b>', '<p>a</p><p>b</p>'],
     ['dropped elements removed', '<p>a<script>alert(1)</script><style>p{}</style></p>', '<p>a</p>'],
     ['comments removed', '<p>a<!--x--></p><!--y-->', '<p>a</p>'],
     ['empty blocks get a line break', '<p></p><p><strong></strong></p>', '<p><br></p><p><br></p>'],
@@ -186,6 +188,13 @@ describe('normalizeElement', () => {
       { name: 'l', schema: { tags: { ul: { kind: 'list', attrs: [] } } } },
     ])
     expect(normalizeLive('<ul>a</ul>', listOnly).html).toBe('<ul><p>a</p></ul>')
+  })
+
+  it('keeps the nesting of a list renamed to another list', () => {
+    const bulletsOnly = createSchema([lists, { name: 'bullets', schema: { rename: { ol: 'ul' } } }])
+    expect(normalizeLive('<ol><li>a<ol><li>b</li></ol></li></ol>', bulletsOnly).html).toBe(
+      '<ul><li>a<ul><li>b</li></ul></li></ul>',
+    )
   })
 })
 

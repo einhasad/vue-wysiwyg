@@ -7,6 +7,11 @@ export const DROPPED_TAGS: ReadonlySet<string> = new Set(
   ),
 )
 
+const BLOCK_CONTAINERS =
+  'address article aside blockquote caption dd dt figcaption figure footer h1 h2 h3 h4 h5 h6 header li main nav pre section td th'.split(
+    ' ',
+  )
+
 const UNSAFE_NAME = /^(on|(style|srcdoc|srcset|formaction|constructor|prototype)$)/
 
 const assertSafeNames = (names: readonly string[], pattern: RegExp, isTag?: boolean): void => {
@@ -24,6 +29,15 @@ export const kindOf = (schema: Schema, node: Node | null): TagKind | undefined =
 
 export const isBlockLevel = (schema: Schema, node: Node | null): boolean =>
   /^(block|list|item)$/.test(kindOf(schema, node) ?? '')
+
+export const unwrapsRename = (schema: Schema, node: Node): boolean => {
+  const { localName } = node as Element
+  return (
+    (schema.rename.get(localName) ?? localName) !== localName &&
+    kindOf(schema, node) !== 'list' &&
+    Array.from(node.childNodes).some((child) => isBlockLevel(schema, child))
+  )
+}
 
 export function createSchema(modules: readonly Module[] = [], options: SchemaOptions = {}): Schema {
   const tags = new Map<string, TagRule>([
@@ -60,6 +74,11 @@ export function createSchema(modules: readonly Module[] = [], options: SchemaOpt
     }
     for (const [from, to] of renamed) {
       rename.set(from, to)
+    }
+  }
+  for (const name of BLOCK_CONTAINERS) {
+    if (!tags.has(name) && !rename.has(name)) {
+      rename.set(name, 'p')
     }
   }
   return {

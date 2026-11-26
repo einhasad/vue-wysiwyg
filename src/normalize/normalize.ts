@@ -1,6 +1,6 @@
 import type { Schema, TagKind, TagRule } from '../core/types.js'
 import { HTML_NAMESPACE, shallowCopy } from '../sanitize/sanitizer.js'
-import { DROPPED_TAGS, kindOf } from '../sanitize/schema.js'
+import { DROPPED_TAGS, kindOf, unwrapsRename } from '../sanitize/schema.js'
 
 type Context = 'root' | 'list' | 'item' | 'text'
 type NodeClass = TagKind | 'text' | 'drop' | 'unknown'
@@ -50,6 +50,7 @@ export function normalizeElement(root: Element, schema: Schema): boolean {
         node.remove()
       } else if (
         nodeClass === 'unknown' ||
+        unwrapsRename(schema, node) ||
         marks.includes(name) ||
         (!ALLOWED[context].includes(nodeClass) && (context === 'item' || context === 'text'))
       ) {

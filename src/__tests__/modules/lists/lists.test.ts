@@ -57,6 +57,19 @@ describe('lists module', () => {
     expect([...editor.schema.tags.keys()]).toEqual(['p', 'br', ...types, 'li'])
   })
 
+  it.each([
+    [
+      '<ol><li>two<ol><li>nested</li></ol></li></ol>',
+      '<ul><li>two<ul><li>nested</li></ul></li></ul>',
+    ],
+    [
+      '<ul><li>two<ol><li>nested</li></ol></li></ul>',
+      '<ul><li>two<ul><li>nested</li></ul></li></ul>',
+    ],
+  ])('keeps the nesting of a renamed list %s', (content, html) => {
+    expect(mountEditor({ content, modules: [lists({ types: ['ul'] })] }).getHTML()).toBe(html)
+  })
+
   it('toggles the only list type and leaves the absent one unavailable', () => {
     const editor = mountEditor({ content: '<p>a</p>', modules: [lists({ types: ['ol'] })] })
     caretAt(editor, 'a')

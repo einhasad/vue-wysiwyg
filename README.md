@@ -232,8 +232,10 @@ The output of `getHTML` is meant to be rendered the way the editor shows it. Thr
 the same:
 
 - **Sanitize before `v-html`/`innerHTML`** with the schema of the editor that wrote the HTML (see the section above).
-  Elements outside the schema are unwrapped and their text kept; `div` becomes `p`, `b` becomes `strong` and `i`
-  becomes `em`; a wrapper around paragraphs is removed so the paragraphs stay separate.
+  Elements outside the schema are unwrapped and their text kept; `div` and block containers the schema does not allow
+  (`section`, `article`, `blockquote`, `pre`, `figure`, `dt`/`dd`, table cells, headings and list items without their
+  module, and similar) become `p`, `b` becomes `strong` and `i` becomes `em`; a wrapper around paragraphs is removed so
+  the paragraphs stay separate.
 - **Whitespace**: the editor root uses `white-space: pre-wrap`, so spaces the user typed are kept, including double
   spaces and spaces at the end of a line. Render the output with the same rule, or double spaces collapse on the page.
   Pretty-printed source HTML is not affected: when HTML enters the editor (initial content, `setHTML`, paste), a
@@ -255,6 +257,7 @@ export function renderStored(element: HTMLElement, storedHtml: string): void {
 }
 
 sanitize('<div><p>a</p><p>b</p></div>', { schema: editor.schema }) // '<p>a</p><p>b</p>'
+sanitize('<section>Steel</section><blockquote>bumper</blockquote>', { schema: editor.schema }) // '<p>Steel</p><p>bumper</p>'
 ```
 
 ## SSR and Nuxt

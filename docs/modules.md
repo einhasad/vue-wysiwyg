@@ -357,3 +357,6 @@ const editor = createEditor({ modules: [strike(), codeBlock()] })
 editor.exec('strike')
 editor.exec('codeBlock')
 ```
+
+A module that contributes a block container tag (`pre`, `blockquote`, ...) or renames it keeps it; otherwise the
+default schema maps it to `p`.

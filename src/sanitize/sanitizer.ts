@@ -1,5 +1,5 @@
 import type { SanitizeOptions, Schema, TagRule } from '../core/types.js'
-import { createSchema, DROPPED_TAGS, isBlockLevel, kindOf } from './schema.js'
+import { createSchema, DROPPED_TAGS, isBlockLevel, kindOf, unwrapsRename } from './schema.js'
 import { safeUrl } from './url.js'
 
 export const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml'
@@ -106,8 +106,7 @@ export function sanitizeToFragment(
         separated ||
         depth >= 128 ||
         (inline && textOnly && !!(parent as Element).closest(name)) ||
-        (name !== localName &&
-          Array.from(node.childNodes).some((child) => isBlockLevel(schema, child)))
+        unwrapsRename(schema, node)
       ) {
         if (kind && separated) {
           let before = !!parent.lastChild
