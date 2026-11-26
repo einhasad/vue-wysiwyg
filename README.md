@@ -243,7 +243,8 @@ the same:
 - **Links**: `rel="noopener noreferrer nofollow"` is a fixed attribute of every link and can not be removed by
   content. `link({ target: '_blank' })` (or `starterKit({ link: { target: '_blank' } })`) adds a fixed `target` to
   every link; without it a `target` in stored HTML is dropped. A link whose URL `safeUrl` rejects keeps its text and
-  its fixed attributes but loses `href` (`<a rel="…">text</a>`); it is not a link.
+  its fixed attributes but loses `href` (`<a rel="…">text</a>`); it is not a link, and `theme.css` shows it as plain
+  text.
 
 ```ts
 import { createEditor } from '@einhasad-vue/vue-wysiwyg'
@@ -295,9 +296,13 @@ quick start.
 }
 ```
 
-Variables: `--vw-bg`, `--vw-fg`, `--vw-muted`, `--vw-border`, `--vw-accent`, `--vw-pressed-bg`, `--vw-hover-bg`,
-`--vw-readonly-bg`, `--vw-error`, `--vw-focus-ring`, `--vw-radius`, `--vw-gap`, `--vw-padding`, `--vw-min-height`,
-`--vw-font`.
+Variables: `--vw-bg`, `--vw-fg`, `--vw-muted`, `--vw-border`, `--vw-input-border` (the link URL field),
+`--vw-accent`, `--vw-pressed-bg`, `--vw-hover-bg`, `--vw-readonly-bg`, `--vw-error`, `--vw-focus-ring`, `--vw-radius`,
+`--vw-gap`, `--vw-padding`, `--vw-min-height`, `--vw-font`.
+
+Only `a[href]` is styled as a link; an `<a>` left without `href` (rejected URL) looks like plain text. In an empty
+heading the placeholder is drawn at the heading's font size. Long words wrap (`overflow-wrap: anywhere`), so they never
+widen the editor.
 
 Dark mode follows `prefers-color-scheme`. `.vw-dark` on the editor, or `.dark` or `[data-theme='dark']` on an
 ancestor, forces it; `.vw-light` opts out of the system dark mode. Toolbar labels come from `defaultMessages` and are
@@ -314,6 +319,8 @@ replaced through the `messages` prop (i18n). Icons are replaced through the `#ic
 - The link popover (`Mod-k` or the link button) is a labelled group; its URL field has a `for`/`id` label. An unsafe
   URL is reported with `aria-invalid` and a described error message. A URL inserted at a collapsed caret is linked and
   the caret is placed after the new link.
+- Focus stays visible in forced-colors mode (Windows High Contrast): buttons, the URL field and the editor get a
+  transparent outline next to the focus ring, which forced colors paint.
 - Toolbar buttons do not take the editor selection away (`mousedown` is prevented).
 - The e2e suite runs axe on the themed editor in light, dark, readonly and popover states, with 0 violations.
 

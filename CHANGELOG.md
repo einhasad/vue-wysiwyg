@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--vw-input-border` theme variable for the link URL field border (light `#818b98`, dark `#6e7681`, at least 3:1 against the editor background). The field used `--vw-border` before.
+
 ### Changed
 
 - Replacing the content from outside (`setHTML`/`setValue` without `{ history: true }`, or a new `v-model` value on `WysiwygEditor`) starts a new undo history: undo and redo are cleared, so `Mod-z` can no longer bring back content of the replaced document. If the outside change restores exactly the state before the last step, only that step is dropped. Pass `setHTML(html, { history: true })` / `setValue(value, { history: true })` to make an outside change undoable.
@@ -14,7 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Block containers outside the schema become paragraphs like `div`, so words from adjacent blocks are no longer glued (`<section>Steel</section><section>bumper</section>` was `<p>Steelbumper</p>`, now `<p>Steel</p><p>bumper</p>`). Affects `address`, `article`, `aside`, `blockquote`, `caption`, `dd`, `dt`, `figcaption`, `figure`, `footer`, `h1`-`h6`, `header`, `li`, `main`, `nav`, `pre`, `section`, `td` and `th` when no module contributes or renames the tag, in `sanitize`, `normalizeHTML`, initial content, `setHTML` and paste; `createSchema().rename` lists them. HTML the editor wrote loads byte-identical. A `pre` still turns its line breaks into spaces. Nothing to do unless you relied on the glued text or expect `schema.rename` to hold only `div`.
 - `editor.can('heading')` is `false` when the selection holds only list items (the command did nothing there), so `EditorToolbar` shows H1-H6 with `aria-disabled="true"` in a list item. With no selection in the editor it stays `true`. Nothing to do unless you relied on `can('heading')` being always `true`.
 - The `link` command makes one `<a>` for a selection inside one paragraph, heading or list item, even across bold, italic, underline or other links (`<a href>…<strong>wysiwyg</strong>: a <em>tiny</em></a>` instead of one `<a>` per formatted piece). Links inside the selection are replaced; a link the selection starts or ends in is split. A selection that is exactly the text of one mark is linked inside it, and a selection across several blocks gets one link per block, as before. Stored HTML loads unchanged; only newly linked text is shaped differently.
-- An `<a>` without `href` (kept when the sanitizer rejects a URL such as `javascript:`) is not treated as a link: `isActive('link')` is `false`, the link popover opens with an empty field and no "Remove link" button. Stored HTML is unchanged.
+- An `<a>` without `href` (kept when the sanitizer rejects a URL such as `javascript:`) is not treated as a link: `isActive('link')` is `false`, the link popover opens with an empty field and no "Remove link" button, and `theme.css` colours only `a[href]`. Stored HTML is unchanged. Custom CSS on `[role='textbox'] a` keeps working.
+- `theme.css` draws the placeholder at the font size and weight of an empty heading (CSS `:has()`).
+- If you overrode `--vw-border` to restyle the link URL field, override `--vw-input-border` instead.
 
 ### Fixed
 
@@ -25,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `paste()`: Word `<o:p>` placeholders are removed, so an empty Word line pastes as `<p><br></p>` (was `<p>&nbsp;</p>`) and no trailing `&nbsp;` follows pasted Word text.
 - Link popover: a URL inserted as link text at a collapsed caret no longer stays selected; the caret is placed after the new link.
 - Link popover: the URL field is linked to its label with `for`/`id`.
+- `theme.css`: a very long word no longer stretches the editor (and its grid or flex parent); the textbox wraps with `overflow-wrap: anywhere`.
+- `theme.css`: focus is visible in forced-colors mode (Windows High Contrast); buttons, the URL field and the textbox get a transparent outline next to the focus ring, and the textbox no longer sets `outline: none`.
 
 ## [0.1.2] - 2026-11-17
 

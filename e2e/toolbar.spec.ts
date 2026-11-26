@@ -2,15 +2,23 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
 const ALL_MODULES = 'bold,italic,underline,heading,lists,link,history'
-const HEADING_OPTIONS = encodeURIComponent(JSON.stringify({ heading: { levels: [2, 3] } }))
+const moduleOptions = (levels: readonly number[]): string =>
+  encodeURIComponent(
+    JSON.stringify({ heading: { levels }, placeholder: { text: 'Write something' } }),
+  )
+const MODULE_OPTIONS = moduleOptions([2, 3])
 
 const open = async (
   page: Page,
   content = '<p>hello world</p>',
-  { modules = ALL_MODULES, extra = '' }: { modules?: string; extra?: string } = {},
+  {
+    modules = ALL_MODULES,
+    extra = '',
+    options = MODULE_OPTIONS,
+  }: { modules?: string; extra?: string; options?: string } = {},
 ): Promise<void> => {
   await page.goto(
-    `/e2e/fixture-theme/index.html?modules=${modules}&options=${HEADING_OPTIONS}&content=${encodeURIComponent(content)}${extra}`,
+    `/e2e/fixture-theme/index.html?modules=${modules}&options=${options}&content=${encodeURIComponent(content)}${extra}`,
   )
   await page.waitForSelector('body[data-ready=true]')
 }
@@ -319,5 +327,114 @@ test.describe('accessibility', () => {
       (element) => getComputedStyle(element.closest('.vw-editor') as Element).backgroundColor,
     )
     expect(background).toBe('rgb(13, 17, 23)')
+  })
+})
+
+const luminance = (rgb: string): number => {
+  const [red = 0, green = 0, blue = 0] = (rgb.match(/\d+/g) ?? []).map((channel) => {
+    const value = Number(channel) / 255
+    return value <= 0.039_28 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+}
+
+const contrast = (first: string, second: string): number => {
+  const [light, dark] = [luminance(first), luminance(second)].sort((a, b) => b - a) as [
+    number,
+    number,
+  ]
+  return (light + 0.05) / (dark + 0.05)
+}
+
+test.describe('theme', () => {
+  test('a long word wraps inside the editor placed in a grid item', async ({ page }) => {
+    await open(page, `<p>${'x'.repeat(2000)}</p>`)
+    await page.locator('#model').evaluate((model: HTMLElement) => {
+      model.hidden = true
+    })
+    await page.locator('main').evaluate((main) => {
+      Object.assign(main.style, { display: 'grid', width: '600px' })
+    })
+    const sizes = await editorBox(page).evaluate((element) => ({
+      editor: (element.closest('.vw-editor') as Element).getBoundingClientRect().width,
+      scroll: element.scrollWidth,
+      client: element.clientWidth,
+    }))
+    expect(sizes.editor).toBeLessThanOrEqual(600)
+    expect(sizes.scroll).toBe(sizes.client)
+  })
+
+  for (const [name, extra, scheme] of [
+    ['light', '', 'light'],
+    ['dark class', '&theme=vw-dark', 'light'],
+    ['system dark', '', 'dark'],
+  ] as const) {
+    test(`the URL input border has 3:1 contrast in ${name}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme })
+      await open(page, '<p>hello world</p>', { extra })
+      await selectText(page, 'p', 0, 5)
+      await tool(page, 'Link').click()
+      const colors = await page
+        .getByRole('textbox', { name: 'URL' })
+        .evaluate((input) => [
+          getComputedStyle(input).borderTopColor,
+          getComputedStyle(input).backgroundColor,
+        ])
+      expect(contrast(colors[0] as string, colors[1] as string)).toBeGreaterThanOrEqual(3)
+    })
+  }
+
+  test('focus stays visible as an outline in forced colors mode', async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' })
+    await open(page)
+    const outlineOf = async (locator: Locator): Promise<string[]> =>
+      locator.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return [style.outlineStyle, style.outlineWidth]
+      })
+    await page.locator('#before').focus()
+    await page.keyboard.press('Tab')
+    await expect(tool(page, 'Bold')).toBeFocused()
+    expect(await outlineOf(tool(page, 'Bold'))).toEqual(['solid', '2px'])
+    await page.keyboard.press('Tab')
+    await expect(editorBox(page)).toBeFocused()
+    expect(await outlineOf(editorBox(page))).toEqual(['solid', '2px'])
+    await selectText(page, 'p', 0, 5)
+    await page.keyboard.press('ControlOrMeta+k')
+    const url = page.getByRole('textbox', { name: 'URL' })
+    await expect(url).toBeFocused()
+    expect(await outlineOf(url)).toEqual(['solid', '2px'])
+  })
+
+  test('the placeholder uses the font of the empty heading it sits in', async ({ page }) => {
+    for (const level of [1, 2, 3, 4, 5, 6]) {
+      await open(page, `<h${String(level)}><br></h${String(level)}>`, {
+        modules: `${ALL_MODULES},placeholder`,
+        options: moduleOptions([1, 2, 3, 4, 5, 6]),
+      })
+      const styles = await editorBox(page).evaluate((element) => ({
+        content: getComputedStyle(element, '::before').content,
+        font: [
+          getComputedStyle(element, '::before').fontSize,
+          getComputedStyle(element, '::before').fontWeight,
+        ],
+        headingFont: [
+          getComputedStyle(element.firstElementChild as Element).fontSize,
+          getComputedStyle(element.firstElementChild as Element).fontWeight,
+        ],
+      }))
+      expect(styles.content).toBe('"Write something"')
+      expect(styles.font).toEqual(styles.headingFont)
+      await expect(editorBox(page).locator(`h${String(level)}`)).toHaveCount(1)
+    }
+  })
+
+  test('only an anchor with href gets the link colour', async ({ page }) => {
+    await open(page, '<p><a href="https://example.com">safe</a> <a>plain</a></p>')
+    const colors = await editorBox(page).evaluate((element) =>
+      [...element.querySelectorAll('a'), element].map((node) => getComputedStyle(node).color),
+    )
+    expect(colors[0]).not.toBe(colors[2])
+    expect(colors[1]).toBe(colors[2])
   })
 })

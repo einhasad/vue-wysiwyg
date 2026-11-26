@@ -3,6 +3,7 @@
   --vw-fg: #1f2328;
   --vw-muted: #59636e;
   --vw-border: #d1d9e0;
+  --vw-input-border: #818b98;
   --vw-accent: #0969da;
   --vw-pressed-bg: #ddf4ff;
   --vw-hover-bg: #f6f8fa;
@@ -28,6 +29,7 @@
   --vw-fg: #e6edf3;
   --vw-muted: #9198a1;
   --vw-border: #3d444d;
+  --vw-input-border: #6e7681;
   --vw-accent: #4493f8;
   --vw-pressed-bg: #1f3a5f;
   --vw-hover-bg: #151b23;
@@ -43,6 +45,7 @@
     --vw-fg: #e6edf3;
     --vw-muted: #9198a1;
     --vw-border: #3d444d;
+    --vw-input-border: #6e7681;
     --vw-accent: #4493f8;
     --vw-pressed-bg: #1f3a5f;
     --vw-hover-bg: #151b23;
@@ -103,7 +106,7 @@
 }
 
 :where(.vw-editor) :where(.vw-input) {
-  border-color: var(--vw-border);
+  border-color: var(--vw-input-border);
   margin-left: var(--vw-gap);
   background: var(--vw-bg);
 }
@@ -122,7 +125,7 @@
   position: relative;
   min-height: var(--vw-min-height);
   padding: var(--vw-padding);
-  outline: none;
+  overflow-wrap: anywhere;
 }
 
 :where(.vw-editor) :where([role='textbox'] > :first-child) {
@@ -136,15 +139,40 @@
   pointer-events: none;
 }
 
+:where(.vw-editor)
+  :where([role='textbox'].is-empty:has(> :is(h1, h2, h3, h4, h5, h6):first-child))::before {
+  font-weight: bold;
+}
+
+:where(.vw-editor) :where([role='textbox'].is-empty:has(> h1:first-child))::before {
+  font-size: 2em;
+}
+
+:where(.vw-editor) :where([role='textbox'].is-empty:has(> h2:first-child))::before {
+  font-size: 1.5em;
+}
+
+:where(.vw-editor) :where([role='textbox'].is-empty:has(> h3:first-child))::before {
+  font-size: 1.17em;
+}
+
+:where(.vw-editor) :where([role='textbox'].is-empty:has(> h5:first-child))::before {
+  font-size: 0.83em;
+}
+
+:where(.vw-editor) :where([role='textbox'].is-empty:has(> h6:first-child))::before {
+  font-size: 0.67em;
+}
+
 :where(.vw-editor) :where([role='textbox'][aria-readonly='true']) {
   background: var(--vw-readonly-bg);
 }
 
-:where(.vw-editor) :where([role='textbox'] a) {
+:where(.vw-editor) :where([role='textbox'] a[href]) {
   color: var(--vw-accent);
 }
 
 :where(.vw-editor) :where(.vw-button, .vw-input, [role='textbox']):focus-visible {
-  outline: none;
+  outline: 2px solid transparent;
   box-shadow: var(--vw-focus-ring);
 }

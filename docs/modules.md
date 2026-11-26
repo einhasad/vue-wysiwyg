@@ -140,7 +140,7 @@ export const links = link({
 - `linkHref(editor)` returns the `href` of the link at the selection start, for prefilling a dialog.
 - Only an `a` with `href` counts as a link. When the sanitizer rejects the URL of a stored or pasted link, it keeps the
   text in a bare `<a rel="…">` so stored HTML loads unchanged; there `isActive('link')` is `false`, `linkHref` is
-  `undefined` and the link popover edits it like plain text. Running `link` with a
+  `undefined`, the link popover edits it like plain text and `theme.css` shows it as plain text. Running `link` with a
   URL on a caret inside it gives it that `href`; with `null` it is unwrapped.
 - Keys: `Mod-k` calls `onShortcut`. `EditorToolbar` from `./theme` handles `Mod-k` itself and opens its link popover.
 - The browser `insertLink` input type is routed to the `link` command.
@@ -202,7 +202,8 @@ export const hint = placeholder({ text: 'Write something', emptyClass: 'is-empty
 | `emptyClass` | string | `'is-empty'` |
 
 - Sets `data-placeholder` and `aria-placeholder` on the editor root and toggles `emptyClass` while the editor is empty.
-  `theme.css` shows the text with `[data-placeholder].is-empty::before`; without the theme, style it yourself.
+  `theme.css` shows the text with `[data-placeholder].is-empty::before`; without the theme, style it yourself. In an
+  empty heading the theme draws it at the heading's font size.
 - The class is removed while an IME composition runs and checked again when it ends.
 - No commands or keys.
 - Size: core + `placeholder` 5.1 kB.
