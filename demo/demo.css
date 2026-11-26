@@ -87,6 +87,7 @@ a {
 
 .demo-main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   padding-top: 0;
 }
@@ -140,7 +141,7 @@ a {
 
 .demo-panes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }

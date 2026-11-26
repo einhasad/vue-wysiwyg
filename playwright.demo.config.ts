@@ -6,7 +6,7 @@ const isCi = Boolean(process.env['CI'])
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'demo.spec.ts',
+  testMatch: /demo(-site)?\.spec\.ts/,
   fullyParallel: true,
   forbidOnly: isCi,
   retries: isCi ? 2 : 0,

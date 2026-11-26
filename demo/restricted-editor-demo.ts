@@ -1,5 +1,5 @@
 import { defineComponent, h, shallowRef } from 'vue'
-import type { Editor, Module } from '@einhasad-vue/vue-wysiwyg'
+import type { Editor } from '@einhasad-vue/vue-wysiwyg'
 import { bold } from '@einhasad-vue/vue-wysiwyg/modules/bold'
 import { heading } from '@einhasad-vue/vue-wysiwyg/modules/heading'
 import { history } from '@einhasad-vue/vue-wysiwyg/modules/history'
@@ -10,10 +10,8 @@ import { WysiwygEditor } from '@einhasad-vue/vue-wysiwyg/vue'
 import { MinimalToolbar } from './minimal-toolbar.js'
 import { OutputPane } from './output-pane.js'
 
-const bulletListsOnly: Module = { name: 'bulletListsOnly', schema: { rename: { ol: 'ul' } } }
-
 const INITIAL_HTML =
-  '<h2>Standard build</h2><p>Only <strong>p</strong>, <strong>strong</strong>, <em>em</em>, <strong>ul/li</strong> and <strong>h2</strong> survive. Paste a table, an ordered list or an h3 here to see them converted.</p><ul><li>Steel bumper</li><li>LED light bar</li></ul>'
+  '<h2>Allowed tags</h2><p>Only <strong>p</strong>, <strong>strong</strong>, <em>em</em>, <strong>ul/li</strong> and <strong>h2</strong> survive. Paste a table, an ordered list or an h3 here to see them converted.</p><ul><li>Headings: level 2</li><li>Lists: bullet points</li></ul>'
 
 export const RestrictedEditorDemo = defineComponent({
   name: 'RestrictedEditorDemo',
@@ -26,8 +24,7 @@ export const RestrictedEditorDemo = defineComponent({
       bold(),
       italic(),
       heading({ levels: [2] }),
-      lists(),
-      bulletListsOnly,
+      lists({ types: ['ul'] }),
       history(),
       paste(),
     ]
@@ -37,7 +34,7 @@ export const RestrictedEditorDemo = defineComponent({
         h('h2', { id: 'restricted-title' }, 'Restricted schema with a custom toolbar'),
         h(
           'p',
-          'A CMS field that stores only p, strong, em, ul/li and h2. heading({ levels: [2] }) maps other headings to p, a one-line module renames ol to ul, and the toolbar is built on the headless useEditorState().',
+          "A CMS field that stores only p, strong, em, ul/li and h2. heading({ levels: [2] }) maps other headings to p, lists({ types: ['ul'] }) turns ordered lists into bullet lists, and the toolbar is built on the headless useEditorState().",
         ),
         h(
           WysiwygEditor,

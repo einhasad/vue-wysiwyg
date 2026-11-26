@@ -1,28 +1,17 @@
 import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue'
 import { version } from '../package.json'
+import coreSizeLimits from '../size/core.json'
 import { FullEditorDemo } from './full-editor-demo.js'
 import { RestrictedEditorDemo } from './restricted-editor-demo.js'
+import USAGE from './usage-example.ts?raw'
 
 type ColorScheme = 'light' | 'dark'
 
 const REPOSITORY_URL = 'https://github.com/einhasad/vue-wysiwyg'
 const PACKAGE_URL = 'https://www.npmjs.com/package/@einhasad-vue/vue-wysiwyg'
 
-const USAGE = `import { WysiwygEditor } from '@einhasad-vue/vue-wysiwyg/vue'
-import { EditorToolbar } from '@einhasad-vue/vue-wysiwyg/theme'
-import { bold } from '@einhasad-vue/vue-wysiwyg/modules/bold'
-import { italic } from '@einhasad-vue/vue-wysiwyg/modules/italic'
-import '@einhasad-vue/vue-wysiwyg/theme.css'
-
-// <WysiwygEditor v-model="html" class="vw-editor" :modules="[bold(), italic()]">
-//   <template #toolbar="{ editor }"><EditorToolbar :editor="editor" /></template>
-// </WysiwygEditor>
-
-// Rendering stored HTML elsewhere? Sanitize where it reaches the DOM,
-// with the schema of the modules the editor uses:
-import { createSchema, sanitize } from '@einhasad-vue/vue-wysiwyg/sanitize'
-const schema = createSchema([bold(), italic()])
-const safeHtml = sanitize(storedHtml, { schema })`
+const coreLimit = coreSizeLimits.find(({ name }) => name === 'core')?.limit ?? ''
+const CORE_KILOBYTES = Math.round(Number.parseInt(coreLimit, 10) / 1000)
 
 const preferredScheme = (): ColorScheme =>
   window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -43,7 +32,7 @@ export const DemoApp = defineComponent({
           h('h1', ['vue-wysiwyg ', h('small', `v${version}`)]),
           h(
             'p',
-            'Tiny, modular, XSS-safe WYSIWYG editor for Vue 3: headless core under 5 KB gzipped, opt-in modules, Markdown and HTML input and output.',
+            `Tiny, modular, XSS-safe WYSIWYG editor for Vue 3: headless core about ${String(CORE_KILOBYTES)} kB gzipped, opt-in modules, Markdown and HTML input and output.`,
           ),
         ]),
         h('nav', { class: 'demo-nav', 'aria-label': 'Project' }, [

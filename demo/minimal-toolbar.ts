@@ -1,11 +1,12 @@
 import { defineComponent, h, shallowRef, type PropType } from 'vue'
-import type { Editor } from '@einhasad-vue/vue-wysiwyg'
+import type { CommandName, Editor } from '@einhasad-vue/vue-wysiwyg'
 import '@einhasad-vue/vue-wysiwyg/modules/heading'
 import '@einhasad-vue/vue-wysiwyg/modules/lists'
 import { useEditorState } from '@einhasad-vue/vue-wysiwyg/vue'
 
 interface ToolbarAction {
   readonly label: string
+  readonly command: CommandName
   readonly run: (editor: Editor) => boolean
   readonly isActive?: (editor: Editor) => boolean
 }
@@ -13,26 +14,30 @@ interface ToolbarAction {
 const ACTIONS: readonly ToolbarAction[] = [
   {
     label: 'Bold',
+    command: 'bold',
     run: (editor) => editor.exec('bold'),
     isActive: (editor) => editor.isActive('bold'),
   },
   {
     label: 'Italic',
+    command: 'italic',
     run: (editor) => editor.exec('italic'),
     isActive: (editor) => editor.isActive('italic'),
   },
   {
-    label: 'H2',
+    label: 'Heading 2',
+    command: 'heading',
     run: (editor) => editor.exec('heading', 2),
     isActive: (editor) => editor.isActive('heading', 2),
   },
   {
     label: 'List',
+    command: 'bulletList',
     run: (editor) => editor.exec('bulletList'),
     isActive: (editor) => editor.isActive('bulletList'),
   },
-  { label: 'Undo', run: (editor) => editor.exec('undo') },
-  { label: 'Redo', run: (editor) => editor.exec('redo') },
+  { label: 'Undo', command: 'undo', run: (editor) => editor.exec('undo') },
+  { label: 'Redo', command: 'redo', run: (editor) => editor.exec('redo') },
 ]
 
 export const MinimalToolbar = defineComponent({
@@ -43,7 +48,7 @@ export const MinimalToolbar = defineComponent({
   },
   setup(props) {
     const state = useEditorState(shallowRef(props.editor), (editor) =>
-      ACTIONS.map((action) => action.isActive?.(editor)),
+      ACTIONS.map((action) => [action.isActive?.(editor), editor.can(action.command)] as const),
     )
     return () =>
       h(
@@ -51,14 +56,15 @@ export const MinimalToolbar = defineComponent({
         { class: 'vw-toolbar' },
         h(
           'div',
-          { role: 'toolbar', class: 'vw-toolbar-buttons', 'aria-label': 'Restricted formatting' },
+          { role: 'group', class: 'vw-toolbar-buttons', 'aria-label': 'Restricted formatting' },
           ACTIONS.map((action, index) =>
             h(
               'button',
               {
                 type: 'button',
                 class: 'vw-button',
-                'aria-pressed': state.value?.[index],
+                'aria-pressed': state.value?.[index]?.[0],
+                'aria-disabled': !state.value?.[index]?.[1],
                 onMousedown: (event: MouseEvent) => {
                   event.preventDefault()
                 },

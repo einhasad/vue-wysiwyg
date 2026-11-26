@@ -80,10 +80,16 @@
       try {
         const version = await resolveVersion()
         const dist = `${CDN}/${PACKAGE}@${version}/dist`
-        const themeCss = document.createElement('link')
-        themeCss.rel = 'stylesheet'
-        themeCss.href = `${dist}/theme.css`
-        document.head.append(themeCss)
+        const manifest = await fetch(`${CDN}/${PACKAGE}@${version}/package.json`)
+          .then((response) => response.json())
+          .catch(() => ({ version: 'unknown' }))
+        const exportsPath = (path) => Object.hasOwn(manifest.exports ?? {}, path)
+        if (exportsPath('./theme.css')) {
+          const themeCss = document.createElement('link')
+          themeCss.rel = 'stylesheet'
+          themeCss.href = `${dist}/theme.css`
+          document.head.append(themeCss)
+        }
         const [
           { createApp, h, shallowRef },
           { WysiwygEditor },
@@ -92,6 +98,7 @@
           heading,
           lists,
           history,
+          theme,
         ] = await Promise.all([
           import('vue'),
           import(`${dist}/vue/index.js`),
@@ -100,11 +107,8 @@
           import(`${dist}/modules/heading.js`),
           import(`${dist}/modules/lists.js`),
           import(`${dist}/modules/history.js`),
+          exportsPath('./theme') ? import(`${dist}/theme/index.js`) : null,
         ])
-        const theme = await import(`${dist}/theme/index.js`).catch(() => null)
-        const manifest = await fetch(`${CDN}/${PACKAGE}@${version}/package.json`)
-          .then((response) => response.json())
-          .catch(() => ({ version: 'unknown' }))
         text('loaded-version', manifest.version)
         text(
           'toolbar-status',

@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `theme.css`: a very long word no longer stretches the editor (and its grid or flex parent); the textbox wraps with `overflow-wrap: anywhere`.
 - `theme.css`: focus is visible in forced-colors mode (Windows High Contrast); buttons, the URL field and the textbox get a transparent outline next to the focus ring, and the textbox no longer sets `outline: none`.
 - Docs: the core size is "about 5 kB" with numbers from the current size run, `kB` everywhere; "cannot" spelling.
+- Demo: the restricted editor uses the public `lists({ types: ['ul'] })` option instead of a custom rename module, and its sample text describes its allowed tags.
+- Demo: the custom headless toolbar is a `role="group"` of plain tab stops with `aria-disabled` from `editor.can()`, and the H2 button is named "Heading 2".
+- Demo: the character counter says "1 word" instead of "1 words".
+- Demo: the Usage snippet compiles as copied (it is type-checked by `npm run demo:build`).
+- Demo: no horizontal scroll at 320 px and with a long unbroken word; favicon, `og:description` and `twitter:card` meta tags; the size claim reads the core limit from `size/core.json`.
+- CDN smoke page `npm.html`: loads `theme.css` and `./theme` only when the chosen version exports them, so `?v=0.0.1` makes no failed requests.
 
 ## [0.1.2] - 2026-11-17
 

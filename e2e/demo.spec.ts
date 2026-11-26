@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 const DANGEROUS_MARKUP =
   /<(script|iframe|svg|img|form|button|style)\b|\s(on\w+|style|formaction)=|="?\s*javascript:/i
@@ -53,12 +53,12 @@ test('renders both editors, the toolbar and the outputs without errors', async (
   await expect(page.getByRole('toolbar', { name: 'Formatting', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Bold' }).first()).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Restricted editor' })).toContainText(
-    'Standard build',
+    'Allowed tags',
   )
   await expect(page.getByTestId('html-output')).toContainText('<h2>Try it</h2>')
   await expect(page.getByTestId('markdown-output')).toContainText('## Try it')
   await expect(page.getByTestId('character-count')).toHaveText(
-    /^[1-9]\d* \/ 2000 characters, \d+ words$/,
+    /^[1-9]\d* \/ 2000 characters, \d+ words?$/,
   )
   expect(errors).toEqual([])
 })
@@ -125,6 +125,20 @@ test('the XSS sample is pasted without scripts, handlers or unsafe URLs', async 
   expect(dialogs).toEqual([])
 })
 
+test('the character count says "1 word" for a single word', async ({ page }) => {
+  const textbox = page.getByRole('textbox', { name: 'Full editor' })
+  await textbox.click()
+  await textbox.evaluate((root) => {
+    document.getSelection()?.selectAllChildren(root)
+  })
+  await page.keyboard.press('Delete')
+  await page.keyboard.type('Hello')
+
+  await expect(page.getByTestId('character-count')).toHaveText('5 / 2000 characters, 1 word')
+  await page.keyboard.type(' world')
+  await expect(page.getByTestId('character-count')).toHaveText('11 / 2000 characters, 2 words')
+})
+
 test('readonly blocks typing and pasting', async ({ page }) => {
   const toggle = page.getByTestId('readonly-toggle')
   const textbox = page.getByRole('textbox', { name: 'Full editor' })
@@ -175,11 +189,21 @@ test('the restricted editor keeps only p, strong, em, ul/li and h2', async ({ pa
   expect(html).toContain('cell')
 })
 
+test('the restricted demo uses the public bullet-only lists option', async ({ page }) => {
+  const section = page.getByRole('region', { name: 'Restricted schema with a custom toolbar' })
+  await expect(section).toContainText("lists({ types: ['ul'] })")
+  await expect(section).not.toContainText('module renames ol to ul')
+  await expect(page.getByRole('textbox', { name: 'Restricted editor' })).not.toContainText(
+    /Steel bumper|LED light bar|Standard build/,
+  )
+})
+
+const restrictedToolbar = (page: Page): Locator =>
+  page.getByRole('group', { name: 'Restricted formatting' })
+
 test('the custom toolbar turns a paragraph into h2 in the restricted editor', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Restricted editor' }).getByText('Only').click()
-  const h2 = page
-    .getByRole('toolbar', { name: 'Restricted formatting' })
-    .getByRole('button', { name: 'H2' })
+  const h2 = restrictedToolbar(page).getByRole('button', { name: 'Heading 2', exact: true })
   await expect(h2).toHaveAttribute('aria-pressed', 'false')
   await h2.click()
 
@@ -187,6 +211,47 @@ test('the custom toolbar turns a paragraph into h2 in the restricted editor', as
   await expect(page.getByTestId('restricted-html-output')).toContainText(
     '<h2>Only <strong>p</strong>',
   )
+})
+
+test('the custom toolbar is a group of plain tab stops, not a toolbar widget', async ({
+  page,
+  browserName,
+}) => {
+  const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
+  await expect(page.getByRole('toolbar', { name: 'Restricted formatting' })).toHaveCount(0)
+  const buttons = restrictedToolbar(page).getByRole('button')
+  await expect(buttons).toHaveText(['Bold', 'Italic', 'Heading 2', 'List', 'Undo', 'Redo'])
+  for (const button of await buttons.all()) {
+    await expect(button).not.toHaveAttribute('tabindex', '-1')
+  }
+
+  await buttons.first().focus()
+  const focused = [await page.evaluate(() => document.activeElement?.textContent)]
+  for (let step = 1; step < 6; step++) {
+    await page.keyboard.press(tab)
+    focused.push(await page.evaluate(() => document.activeElement?.textContent))
+  }
+  expect(focused).toEqual(['Bold', 'Italic', 'Heading 2', 'List', 'Undo', 'Redo'])
+})
+
+test('the custom toolbar marks Undo and Redo aria-disabled from editor.can()', async ({ page }) => {
+  const undo = restrictedToolbar(page).getByRole('button', { name: 'Undo' })
+  const redo = restrictedToolbar(page).getByRole('button', { name: 'Redo' })
+  await expect(undo).toHaveAttribute('aria-disabled', 'true')
+  await expect(redo).toHaveAttribute('aria-disabled', 'true')
+  await expect(restrictedToolbar(page).getByRole('button', { name: 'Bold' })).toHaveAttribute(
+    'aria-disabled',
+    'false',
+  )
+
+  await caretToEndOf(page, 'Restricted editor')
+  await page.keyboard.type(' typed')
+  await expect(undo).toHaveAttribute('aria-disabled', 'false')
+  await expect(redo).toHaveAttribute('aria-disabled', 'true')
+
+  await undo.click()
+  await expect(page.getByTestId('restricted-html-output')).not.toContainText(' typed')
+  await expect(redo).toHaveAttribute('aria-disabled', 'false')
 })
 
 test('the usage snippet sanitizes stored HTML with the schema of the editor modules', async ({

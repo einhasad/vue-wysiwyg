@@ -134,7 +134,7 @@ export const FullEditorDemo = defineComponent({
           h(
             'output',
             { class: 'demo-count', 'data-testid': 'character-count', 'aria-live': 'polite' },
-            `${String(counts.value.characters)} / ${String(CHARACTER_LIMIT)} characters, ${String(counts.value.words)} words`,
+            `${String(counts.value.characters)} / ${String(CHARACTER_LIMIT)} characters, ${String(counts.value.words)} ${counts.value.words === 1 ? 'word' : 'words'}`,
           ),
         ]),
         h(
