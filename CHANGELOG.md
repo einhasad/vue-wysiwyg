@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-27
+
 ### Added
 
 - `--vw-input-border` theme variable for the link URL field border (light `#818b98`, dark `#6e7681`, at least 3:1 against the editor background). The field used `--vw-border` before.
@@ -125,7 +127,8 @@ First preview release for integration testing; link, paste, Markdown and the def
 - `underline`, `heading` (levels configurable), `lists` (bullet/ordered, indent/outdent), `history` (undo/redo), `placeholder` and `characterCount` modules.
 - `./vue` subpath: `useEditor`, `useEditorState`, `EditorContent` and `WysiwygEditor` with `v-model` (emits `''` when empty, keeps the caret on echoed values), SSR safe.
 
-[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/einhasad/vue-wysiwyg/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/einhasad/vue-wysiwyg/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/einhasad/vue-wysiwyg/compare/v0.0.1...v0.1.0
