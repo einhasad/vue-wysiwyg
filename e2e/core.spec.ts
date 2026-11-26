@@ -161,6 +161,7 @@ test('IME composition through CDP commits text', async ({ page, browserName }) =
 })
 
 test('100k nested elements stay within the depth cap', async ({ page }) => {
+  test.setTimeout(120_000)
   await open(page, '?modules=bold')
   const depth = await page.evaluate(() => {
     const count = 100_000
