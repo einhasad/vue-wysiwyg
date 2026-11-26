@@ -118,7 +118,8 @@ editor.exec('bold')
 editor.destroy()
 ```
 
-Editor API: `getHTML`/`setHTML`, `getValue`/`setValue` (in the editor `format`), `isEmpty`, `textLength`,
+Editor API: `getHTML`/`setHTML(html, { history })`, `getValue`/`setValue(value, { history })` (in the editor `format`;
+without `history: true` an outside change clears undo/redo), `isEmpty`, `textLength`,
 `exec(name, arg)`, `can(name)`, `isActive(name, arg)`, `transact(fn)`, `selection.save`/`restore`, `setReadonly`,
 `focus`, `on(event, listener)` (`update`, `selection`, `focus`, `blur`, `keydown`, `beforeChange`, `readonly`,
 `destroy`) and `destroy`. Command names and arguments are typed: `exec('heading', 2)` compiles, `exec('nope')` does not.

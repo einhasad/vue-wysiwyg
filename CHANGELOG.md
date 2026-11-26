@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replacing the content from outside (`setHTML`/`setValue` without `{ history: true }`, or a new `v-model` value on `WysiwygEditor`) starts a new undo history: undo and redo are cleared, so `Mod-z` can no longer bring back content of the replaced document. If the outside change restores exactly the state before the last step, only that step is dropped. Pass `setHTML(html, { history: true })` / `setValue(value, { history: true })` to make an outside change undoable.
+- Undo and redo emit `update` (and `WysiwygEditor` emits `update:modelValue`) once instead of twice; `exec` no longer emits a second `update` when the command already committed through `setHTML` or `transact`. Nothing to do unless you counted two events per undo or redo.
+
+### Fixed
+
+- `characterCount`: an IME composition reverted because it ended over the limit no longer leaves an empty undo step.
+
 ## [0.1.2] - 2026-11-17
 
 ### Fixed

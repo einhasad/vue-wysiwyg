@@ -205,6 +205,31 @@ describe('commands', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
+  it('commits once when the command commits itself', () => {
+    const editor = mountEditor({
+      modules: [
+        commandModule('replace', (current) => {
+          current.setHTML('<p>replaced</p>')
+          return true
+        }),
+        commandModule('wrap', (current) => {
+          current.transact(() => {
+            current.root.append(document.createElement('p'))
+          })
+          return true
+        }),
+      ],
+    })
+    const events: string[] = []
+    editor.on('beforeChange', () => events.push('beforeChange'))
+    editor.on('update', () => events.push('update'))
+    expect(editor.exec('replace' as 'undo')).toBe(true)
+    expect(events).toEqual(['beforeChange', 'update'])
+    events.length = 0
+    expect(editor.exec('wrap' as 'undo')).toBe(true)
+    expect(events).toEqual(['beforeChange', 'beforeChange', 'update'])
+  })
+
   it('returns false for unknown commands', () => {
     expect(mountEditor().exec('undo')).toBe(false)
     expect(mountEditor().can('undo')).toBe(false)

@@ -233,6 +233,97 @@ describe('history module', () => {
     expect(editor.getHTML()).toBe('<p>b</p>')
   })
 
+  it('clears undo and redo when the content is replaced from outside', () => {
+    const editor = historyEditor('<p>a</p>')
+    editor.setHTML('<p>b</p>', { history: true })
+    editor.setHTML('<p>c</p>', { history: true })
+    editor.exec('undo')
+    editor.setHTML('<p>reset</p>')
+    expect(editor.can('undo')).toBe(false)
+    expect(editor.can('redo')).toBe(false)
+    expect(editor.exec('undo')).toBe(false)
+    expect(editor.getHTML()).toBe('<p>reset</p>')
+  })
+
+  it('records the typing that continues right after an outside replacement', () => {
+    const editor = historyEditor('<p>a</p>')
+    select(textOf(editor, [0, 0]), 1)
+    typeText(editor, 'b')
+    editor.setHTML('<p>x</p>')
+    select(textOf(editor, [0, 0]), 1)
+    typeText(editor, 'y')
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>x</p>')
+    expect(editor.can('undo')).toBe(false)
+  })
+
+  it('clears the stacks on an outside replacement after a keystroke that changed nothing', async () => {
+    const editor = historyEditor('<p>record A</p>')
+    select(textOf(editor, [0, 0]), 0)
+    beforeInput(editor, 'deleteContentBackward')
+    await new Promise((resolve) => setTimeout(resolve))
+    editor.setHTML('<p>record B</p>')
+    expect(editor.can('undo')).toBe(false)
+    expect(editor.exec('undo')).toBe(false)
+    expect(editor.getHTML()).toBe('<p>record B</p>')
+  })
+
+  it('records the same kind of typing after a keystroke that changed nothing', async () => {
+    const editor = historyEditor('<p>ab</p>')
+    select(textOf(editor, [0, 0]), 0)
+    beforeInput(editor, 'deleteContentBackward')
+    await new Promise((resolve) => setTimeout(resolve))
+    select(textOf(editor, [0, 0]), 2)
+    deleteBackward(editor)
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>ab</p>')
+  })
+
+  it('keeps the stacks when an outside setHTML leaves the content unchanged', () => {
+    const editor = historyEditor('<p>a</p>')
+    editor.setHTML('<p>b</p>', { history: true })
+    editor.setHTML('<p>b</p>')
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a</p>')
+  })
+
+  it('drops only the last step when an outside change restores its snapshot', () => {
+    const editor = historyEditor('<p>a</p>')
+    editor.setHTML('<p>b</p>', { history: true })
+    editor.setHTML('<p>c</p>', { history: true })
+    editor.setHTML('<p>b</p>')
+    expect(editor.can('redo')).toBe(false)
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a</p>')
+    expect(editor.can('undo')).toBe(false)
+  })
+
+  it('keeps the stacks for a transaction that changes more after a nested command', () => {
+    const editor = historyEditor('<p>a</p>')
+    editor.setHTML('<p>ab</p>', { history: true })
+    const text = textOf(editor, [0, 0])
+    editor.transact(() => {
+      select(text, 0, text, 2)
+      editor.exec('bold')
+      editor.root.append(document.createElement('p'))
+    })
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>ab</p>')
+    expect(editor.exec('undo')).toBe(true)
+    expect(editor.getHTML()).toBe('<p>a</p>')
+  })
+
+  it('emits beforeChange and update once per undo and redo', () => {
+    const editor = historyEditor('<p>a</p>')
+    editor.setHTML('<p>b</p>', { history: true })
+    const events: string[] = []
+    editor.on('beforeChange', () => events.push('beforeChange'))
+    editor.on('update', () => events.push(`update ${editor.getHTML()}`))
+    editor.exec('undo')
+    editor.exec('redo')
+    expect(events).toEqual(['beforeChange', 'update <p>a</p>', 'beforeChange', 'update <p>b</p>'])
+  })
+
   it('skips a no-op command and does not leak its snapshot into a later setHTML', async () => {
     const editor = historyEditor('<p>a</p>')
     expect(editor.exec('bold')).toBe(false)

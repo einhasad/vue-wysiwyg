@@ -46,6 +46,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
   let internalDrag = false
   let frame = 0
   let selectionInside = false
+  let commits = 0
 
   for (const module of modules) {
     for (const [name, spec] of Object.entries(module.commands ?? {})) {
@@ -129,6 +130,7 @@ export function createEditor(options: EditorOptions = {}): Editor {
 
   const commit = (): void => {
     normalize()
+    commits++
     emit('update')
   }
 
@@ -187,8 +189,9 @@ export function createEditor(options: EditorOptions = {}): Editor {
       return false
     }
     emit('beforeChange')
+    const before = commits
     const done = (commands.get(name) as CommandSpec<unknown>).run(editor, arg)
-    if (done) {
+    if (done && before === commits) {
       commit()
     }
     return done

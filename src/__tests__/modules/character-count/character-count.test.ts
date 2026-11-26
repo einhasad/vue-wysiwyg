@@ -7,6 +7,7 @@ import {
   type CharacterCountModule,
   type CharacterCountOptions,
 } from '../../../modules/character-count.js'
+import { history } from '../../../modules/history.js'
 import { beforeInput, dispatch, mountEditor, select, textOf, transfer } from '../../core/helpers.js'
 
 afterEach(() => {
@@ -271,6 +272,24 @@ describe('characterCount module', () => {
       const range = editor.selection.range()
       expect(range?.startContainer).toBe(textOf(editor, [0, 0]))
       expect(range?.startOffset).toBe(1)
+    })
+
+    it('drops the reverted composition from history and keeps the earlier steps', () => {
+      const editor = mountEditor({
+        content: '<p>a</p>',
+        modules: [history(), characterCount({ limit: 3 })],
+      })
+      editor.setHTML('<p>ab</p>', { history: true })
+      select(textOf(editor, [0, 0]), 2)
+      compose(editor, 'かなか')
+      dispatch(editor.root, 'compositionend')
+      expect(editor.getHTML()).toBe('<p>ab</p>')
+      expect(editor.can('redo')).toBe(false)
+      expect(editor.exec('undo')).toBe(true)
+      expect(editor.getHTML()).toBe('<p>a</p>')
+      expect(editor.exec('redo')).toBe(true)
+      expect(editor.getHTML()).toBe('<p>ab</p>')
+      expect(editor.can('redo')).toBe(false)
     })
 
     it('never reverts without a limit', () => {

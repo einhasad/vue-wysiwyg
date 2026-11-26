@@ -1,8 +1,9 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { KeepAlive, defineComponent, h, nextTick, ref, type Ref } from 'vue'
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
-import type { Editor, Format } from '../../core/types.js'
+import type { Editor, Format, Module } from '../../core/types.js'
 import { bold } from '../../modules/bold.js'
+import { history } from '../../modules/history.js'
 import { WysiwygEditor } from '../../vue/wysiwyg-editor.js'
 import { dispatch } from '../core/helpers.js'
 
@@ -30,15 +31,24 @@ const typeInto = (root: HTMLElement, text: Text, value: string): void => {
 
 const mountWithModel = async (
   initial: string,
-): Promise<{ model: Ref<string>; root: () => HTMLElement; editor: () => Editor }> => {
+  modules?: readonly Module[],
+): Promise<{
+  model: Ref<string>
+  emitted: string[]
+  root: () => HTMLElement
+  editor: () => Editor
+}> => {
   const model = ref(initial)
+  const emitted: string[] = []
   const wrapper = mount(
     defineComponent({
       setup() {
         return () =>
           h(WysiwygEditor, {
             modelValue: model.value,
+            modules,
             'onUpdate:modelValue': (value: string) => {
+              emitted.push(value)
               model.value = value
             },
           })
@@ -50,6 +60,7 @@ const mountWithModel = async (
   const child = wrapper.getComponent(WysiwygEditor)
   return {
     model,
+    emitted,
     root: () => child.get('[role=textbox]').element as HTMLElement,
     editor: () => child.vm.editor as Editor,
   }
@@ -109,6 +120,31 @@ describe('WysiwygEditor', () => {
     expect(setValue).toHaveBeenCalledOnce()
     expect(root().innerHTML).toBe('<p>b</p>')
     expect(model.value).toBe('<p>b</p><script>alert(1)</script>')
+  })
+
+  it('starts a new undo history when the model changes from outside', async () => {
+    const wrapper = await mountEditor({ modelValue: '<p>a</p>', modules: [history()] })
+    const root = rootOf(wrapper)
+    const text = root.querySelector('p')?.firstChild as Text
+    document.getSelection()?.collapse(text, 1)
+    dispatch(root, 'beforeinput', { inputType: 'insertText', data: 'b' })
+    typeInto(root, text, 'ab')
+    expect(editorOf(wrapper).can('undo')).toBe(true)
+    await wrapper.setProps({ modelValue: '<p>reset</p>' })
+    expect(editorOf(wrapper).can('undo')).toBe(false)
+    expect(editorOf(wrapper).exec('undo')).toBe(false)
+    expect(root.innerHTML).toBe('<p>reset</p>')
+  })
+
+  it('emits update:modelValue once per undo and redo', async () => {
+    const { emitted, editor } = await mountWithModel('<p>a</p>', [history()])
+    editor().setHTML('<p>b</p>', { history: true })
+    await nextTick()
+    editor().exec('undo')
+    await nextTick()
+    editor().exec('redo')
+    await nextTick()
+    expect(emitted).toEqual(['<p>b</p>', '<p>a</p>', '<p>b</p>'])
   })
 
   it('normalizes an external value without emitting it back to the model', async () => {

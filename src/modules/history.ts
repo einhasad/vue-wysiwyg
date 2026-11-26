@@ -35,6 +35,8 @@ export const history = ({ depth = 100, groupDelay = 500 }: HistoryOptions = {}):
     let lastType: string | undefined
     let lastTime = 0
     let composing = false
+    let open = 0
+    let current = editor.getHTML()
 
     const travel = (from: Snapshot[], to: Snapshot[]): Travel => ({
       run() {
@@ -53,29 +55,39 @@ export const history = ({ depth = 100, groupDelay = 500 }: HistoryOptions = {}):
       const type = (event as InputEvent | undefined)?.inputType
       const now = Date.now()
       const nested = !type && !!pending && !lastType
+      open++
       if (!nested && (!type || type !== lastType || now - lastTime > groupDelay)) {
         pending = { html: editor.getHTML(), selection: editor.selection.save() }
       }
-      if (!type) {
-        queueMicrotask(() => {
-          if (!composing) {
-            pending = undefined
-          }
-        })
-      }
+      const afterInput = type ? setTimeout : queueMicrotask
+      afterInput(() => {
+        if (open && !composing) {
+          open = 0
+          pending = lastType = undefined
+        }
+      })
       lastType = type
       lastTime = now
     })
     editor.on('update', () => {
-      if (pending?.html === editor.getHTML()) {
-        lastType = undefined
-      } else if (pending) {
-        done.push(pending)
-        undone.length = 0
-        if (done.length > depth) {
-          done.shift()
+      const html = editor.getHTML()
+      if (open) {
+        open--
+        if (pending?.html === html) {
+          lastType = undefined
+        } else if (pending) {
+          done.push(pending)
+          undone.length = 0
+          if (done.length > depth) {
+            done.shift()
+          }
         }
+      } else if (html !== current) {
+        done.splice(done[done.length - 1]?.html === html ? -1 : 0)
+        undone.length = 0
+        lastType = undefined
       }
+      current = html
       pending = undefined
     })
     const trackComposition = (event: Event): void => {

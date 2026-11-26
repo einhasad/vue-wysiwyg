@@ -156,6 +156,10 @@ export const undoRedo = history({ depth: 100, groupDelay: 500 })
 - Keys: `Mod-z` undo, `Mod-Shift-z` and `Mod-y` redo. The browser `historyUndo` and `historyRedo` input types (menu,
   shake to undo) are routed to the same commands, so the native undo stack never gets out of sync.
 - Undo restores the HTML and the selection through `setHTML`, so restored content is sanitized again.
+- An outside change of the content (`setHTML`/`setValue` without options, a new `v-model` value) starts a new history:
+  undo and redo are cleared. Pass `{ history: true }` to `setHTML`/`setValue` to record the change as one undo step
+  instead.
+- Undo and redo emit `update` once, like any other command.
 - Undo and redo are disabled while an IME composition is in progress.
 - Without this module, `undo` and `redo` do nothing.
 - Size: core + `history` 5.4 kB.
@@ -216,7 +220,7 @@ editor.on('update', () => {
   instance serves several editors.
 - Typing that would go over `limit` is blocked, and pasted text or HTML is cut at the limit (never inside a surrogate
   pair). IME composition is never interrupted; if it ends over the limit, the content reverts to its state before the
-  composition.
+  composition and the composition leaves no undo step.
 - Without `limit` it only counts.
 - No commands or keys.
 - Size: core + `characterCount` 5.5 kB.
@@ -293,7 +297,9 @@ A module can also:
 - add listeners in `setup(editor)` and return a cleanup function.
 
 Change the DOM only inside `editor.transact(fn)` or a command, so normalization, history and the `update` event run.
-Tag and attribute names are validated: event handlers, `style`, `srcdoc`, `srcset` and `formaction` can not be allowed.
+A change made outside them through `editor.setHTML(html)` counts as an outside change and clears the undo history; use
+`editor.setHTML(html, { history: true })` to record it. Tag and attribute names are validated: event handlers,
+`style`, `srcdoc`, `srcset` and `formaction` can not be allowed.
 
 Schema rules:
 

@@ -135,3 +135,25 @@ test('readonly blocks undo from keys and beforeinput', async ({ page }) => {
   expect(await dispatchHistoryInput(page, 'historyUndo')).toBe(true)
   await expect(output(page)).toHaveText('')
 })
+
+test('an outside replacement after a Backspace that changed nothing clears the history', async ({
+  page,
+}) => {
+  await page.goto(
+    `/e2e/fixture/index.html?modules=history,bold&content=${encodeURIComponent('<p>record A</p>')}`,
+  )
+  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true')
+  await editor(page).click()
+  await page.evaluate(() => {
+    document.getSelection()?.collapse(window.editor.root.querySelector('p')?.firstChild ?? null, 0)
+  })
+  await page.keyboard.press('Backspace')
+  await expect(output(page)).toHaveText('<p>record A</p>')
+  await page.evaluate(async () => new Promise((resolve) => setTimeout(resolve)))
+  await page.evaluate(() => {
+    window.editor.setHTML('<p>record B</p>')
+  })
+  expect(await page.evaluate(() => window.editor.can('undo'))).toBe(false)
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(output(page)).toHaveText('<p>record B</p>')
+})
