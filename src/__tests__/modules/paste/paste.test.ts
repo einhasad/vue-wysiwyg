@@ -9,6 +9,7 @@ import { underline } from '../../../modules/underline.js'
 import { safeUrl } from '../../../sanitize/index.js'
 import { dispatch, keyDown, mountEditor, select, transfer } from '../../core/helpers.js'
 import googleDocs from './fixtures/google-docs.html.txt?raw'
+import wordAdjacentLists from './fixtures/word-adjacent-lists.html.txt?raw'
 import wordMac from './fixtures/word-mac.html.txt?raw'
 import wordWindows from './fixtures/word-windows.html.txt?raw'
 
@@ -72,7 +73,7 @@ describe('Word html', () => {
       '<p>x</p>' +
         '<p>Intro with <strong>bold</strong>, <em>italic</em> and <strong><em>both</em></strong></p>' +
         '<ul><li>First bullet<ul><li>Nested bullet</li></ul></li><li>Second <strong>bullet</strong></li></ul>' +
-        '<p>&nbsp;</p>' +
+        '<p><br></p>' +
         '<ol><li>Step one</li><li>Step two</li></ol>' +
         `<p>Closing <strong>words</strong> <a href="https://example.com/doc" ${REL}>link</a></p>`,
     )
@@ -99,6 +100,34 @@ describe('Word html', () => {
     expect(cleanPastedHTML(html, mountEditor({ modules: [listsSchema] }))).toBe(
       '<ul><li><ul><li>deep</li></ul></li><li>top</li></ul><p>between</p> <ul><li>again</li></ul>',
     )
+  })
+
+  it('starts a new list when the Word list id changes between adjacent lists', () => {
+    expect(pasted({ 'text/html': wordAdjacentLists })).toBe(
+      '<p>x</p>' +
+        '<ul><li>Bullet one</li><li>Bullet two</li></ul>' +
+        '<ol><li>Number one</li><li>Number two</li></ol>' +
+        '<ul><li>Bullet again</li></ul>',
+    )
+  })
+
+  it('starts a new top list when the marker type changes within one Word list id', () => {
+    const item = (level: number, marker: string, text: string): string =>
+      `<p style="mso-list:l0 level${String(level)} lfo1"><span style="mso-list:Ignore">${marker}</span>${text}</p>`
+    const html = `${item(1, '·', 'bullet')}${item(2, '1.', 'nested')}${item(1, '1.', 'number')}${item(1, 'a)', 'letter')}`
+    expect(cleanPastedHTML(html, mountEditor({ modules: [listsSchema] }))).toBe(
+      '<ul><li>bullet<ol><li>nested</li></ol></li></ul><ol><li>number</li><li>letter</li></ol>',
+    )
+  })
+
+  it('drops Word o:p placeholders so an empty Word line becomes an empty paragraph', () => {
+    expect(
+      pasted({
+        'text/html':
+          '<p class=MsoNormal>a<o:p></o:p></p>\n<p class=MsoNormal><o:p>&nbsp;</o:p></p>\n' +
+          "<p class=MsoNormal><i>ital</i> and <span style='font-weight:bold'>bold</span><o:p>&nbsp;</o:p></p>",
+      }),
+    ).toBe('<p>x</p><p>a</p><p><br></p><p><em>ital</em> and <strong>bold</strong></p>')
   })
 
   it('ignores mso-list values that are not list levels', () => {

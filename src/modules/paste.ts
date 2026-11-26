@@ -3,7 +3,7 @@ import type { Editor, Module } from '../core/types.js'
 import { safeUrl } from '../sanitize/url.js'
 
 const BLANK_LINE = /\r?\n\s*\n/
-const WORD_LIST_LEVEL = /mso-list:\s*l\d+\s+level(\d+)/
+const WORD_LIST_LEVEL = /mso-list:\s*(l\d+)\s+level(\d+)/
 const SOURCE_WHITESPACE = /[\t\r\n ]+/g
 const WORD_LIST_MARKER = '[style*="mso-list:Ignore"]'
 
@@ -28,18 +28,27 @@ const textToParagraphs = (text: string): string =>
 const convertWordLists = (body: HTMLElement): void => {
   const document = body.ownerDocument
   let lists: Element[] = []
+  let listId: string | undefined
   for (const paragraph of body.querySelectorAll('p')) {
-    const level = Number(WORD_LIST_LEVEL.exec(paragraph.getAttribute('style') ?? '')?.[1])
+    const [, id, levelText] = WORD_LIST_LEVEL.exec(paragraph.getAttribute('style') ?? '') ?? []
+    const level = Number(levelText)
     if (!level) {
       continue
     }
-    if (paragraph.previousElementSibling !== lists[0]) {
+    const marker = paragraph.querySelector(WORD_LIST_MARKER)?.textContent.trim() ?? ''
+    const tag = /[.)]$/.test(marker) ? 'ol' : 'ul'
+    const top = lists[0]
+    if (
+      paragraph.previousElementSibling !== top ||
+      id !== listId ||
+      (level < 2 && tag !== top.localName)
+    ) {
       lists = []
     }
-    const marker = paragraph.querySelector(WORD_LIST_MARKER)?.textContent.trim() ?? ''
+    listId = id
     lists.length = Math.min(lists.length, level)
     while (lists.length < level) {
-      const list = document.createElement(/[.)]$/.test(marker) ? 'ol' : 'ul')
+      const list = document.createElement(tag)
       const parent = lists.at(-1)
       if (parent) {
         ;(parent.lastElementChild ?? parent.appendChild(document.createElement('li'))).append(list)
@@ -98,7 +107,9 @@ export const cleanPastedHTML = (html: string, editor: Editor): string => {
   if (editor.schema.tags.has('li')) {
     convertWordLists(body)
   }
-  for (const node of body.querySelectorAll(`${WORD_LIST_MARKER},.Apple-interchange-newline`)) {
+  for (const node of body.querySelectorAll(
+    `${WORD_LIST_MARKER},.Apple-interchange-newline,o\\:p`,
+  )) {
     node.remove()
   }
   convertTables(body)

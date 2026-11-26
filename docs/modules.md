@@ -170,8 +170,9 @@ export const undoRedo = history({ depth: 100, groupDelay: 500 })
 
 - `paste()`, no options. Core already sanitizes every paste and drop; this module cleans up content from office apps
   before that.
-- Word (Windows and Mac): `mso-list` paragraphs become nested `ul`/`ol` lists (when `lists` is used); list markers and
-  Word-only markup are removed.
+- Word (Windows and Mac): `mso-list` paragraphs become nested `ul`/`ol` lists (when `lists` is used); adjacent Word
+  lists with a different list id or marker type stay separate lists. List markers, `<o:p>` placeholders and other
+  Word-only markup are removed, so an empty Word line becomes an empty paragraph.
 - Google Docs: the `b` wrapper with `font-weight: normal` is unwrapped, and `span` styles become `strong`, `em` and `u`.
 - Tables (Excel, Google Sheets, web pages): every row becomes a paragraph with its cells separated by a tab, empty
   cells included.

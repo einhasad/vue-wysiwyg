@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `characterCount`: an IME composition reverted because it ended over the limit no longer leaves an empty undo step.
 - `lists({ types: ['ul'] })` (or a module renaming `ol` to `ul`) keeps nested lists: `<ol><li>two<ol><li>nested</li></ol></li></ol>` becomes `<ul><li>two<ul><li>nested</li></ul></li></ul>` instead of `<ul><li>two<br>nested</li></ul>`.
 - `normalizeElement` (live editor DOM) unwraps a renamed element around blocks like `sanitize` does: `<div><p>a</p>b</div>` and `<b><p>a</p><p>b</p></b>` become `<p>a</p><p>b</p>` instead of `<p>ab</p>` / `<p><strong>ab</strong></p>`.
+- `paste()`: a Word numbered list pasted right after a bulleted list (or the reverse) stays a separate list; a new list starts when the Word list id or the top-level marker type changes.
+- `paste()`: Word `<o:p>` placeholders are removed, so an empty Word line pastes as `<p><br></p>` (was `<p>&nbsp;</p>`) and no trailing `&nbsp;` follows pasted Word text.
 
 ## [0.1.2] - 2026-11-17
 

@@ -59,7 +59,7 @@ test('pastes Word html as clean lists and marks', async ({ page }) => {
     '<p>x</p>' +
       '<p>Intro with <strong>bold</strong>, <em>italic</em> and <strong><em>both</em></strong></p>' +
       '<ul><li>First bullet<ul><li>Nested bullet</li></ul></li><li>Second <strong>bullet</strong></li></ul>' +
-      '<p>&nbsp;</p>' +
+      '<p><br></p>' +
       '<ol><li>Step one</li><li>Step two</li></ol>' +
       `<p>Closing <strong>words</strong> <a href="https://example.com/doc" ${REL}>link</a></p>`,
   )
