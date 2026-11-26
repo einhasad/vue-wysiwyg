@@ -19,6 +19,6 @@
       "dist/vue/index.js": "{ useEditor, useEditorState, EditorContent, WysiwygEditor }",
       "dist/theme/index.js": "{ EditorToolbar, LinkPopover, defaultMessages }"
     },
-    "limit": "14570 B"
+    "limit": "14900 B"
   }
 ]

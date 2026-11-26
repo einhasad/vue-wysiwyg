@@ -75,7 +75,7 @@ Chinese IME (macOS and Windows).
 11. Markdown shortcuts (`# `, `- `, `1. `, `**bold**`) typed with the mobile keyboard apply once.
 12. Long-press text selection, then the toolbar Bold button: the selection is kept and becomes bold.
 13. Paste from the system clipboard (long press, Paste): the content is sanitized and the caret is after it.
-14. Readonly: the keyboard can select and copy text but can not change it.
+14. Readonly: the keyboard can select and copy text but cannot change it.
 15. Screen reader (VoiceOver on iOS, TalkBack on Android): the editor is announced as an editable text field with its
     label, and toolbar buttons announce their pressed state.
 

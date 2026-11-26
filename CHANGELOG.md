@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--vw-input-border` theme variable for the link URL field border (light `#818b98`, dark `#6e7681`, at least 3:1 against the editor background). The field used `--vw-border` before.
+- Documentation of `labelledby` on `WysiwygEditor`, `setHTML`/`setValue` `{ history }`, `htmlFormat`, `sanitizeToFragment`, the `./normalize` subpath (`normalizeHTML`, `isEmptyHTML`, `normalizeElement`, `isEmptyNode`) and `LinkPopover`; `textLength()` and `characterCount` count UTF-16 code units (an emoji counts 2); `v-model` keeps the passed string until the first user edit; an empty line can keep a mark wrapper (`<p><strong><br></strong></p>`); a changed bullet or delimiter continues a Markdown list.
 
 ### Changed
 
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An `<a>` without `href` (kept when the sanitizer rejects a URL such as `javascript:`) is not treated as a link: `isActive('link')` is `false`, the link popover opens with an empty field and no "Remove link" button, and `theme.css` colours only `a[href]`. Stored HTML is unchanged. Custom CSS on `[role='textbox'] a` keeps working.
 - `theme.css` draws the placeholder at the font size and weight of an empty heading (CSS `:has()`).
 - If you overrode `--vw-border` to restyle the link URL field, override `--vw-input-border` instead.
+- Size limits raised once for the fixes in this release: core is about 5 kB gzipped (5.2 kB), core + `starterKit` 9.4 kB.
 
 ### Fixed
 
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link popover: the URL field is linked to its label with `for`/`id`.
 - `theme.css`: a very long word no longer stretches the editor (and its grid or flex parent); the textbox wraps with `overflow-wrap: anywhere`.
 - `theme.css`: focus is visible in forced-colors mode (Windows High Contrast); buttons, the URL field and the textbox get a transparent outline next to the focus ring, and the textbox no longer sets `outline: none`.
+- Docs: the core size is "about 5 kB" with numbers from the current size run, `kB` everywhere; "cannot" spelling.
 
 ## [0.1.2] - 2026-11-17
 

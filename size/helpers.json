@@ -6,6 +6,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/helpers/index.js": "{ markModule }"
     },
-    "limit": "5980 B"
+    "limit": "6140 B"
   }
 ]

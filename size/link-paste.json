@@ -6,7 +6,7 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/link.js": "{ link }"
     },
-    "limit": "5910 B"
+    "limit": "6180 B"
   },
   {
     "name": "core + paste",
@@ -15,6 +15,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/paste.js": "{ paste }"
     },
-    "limit": "6060 B"
+    "limit": "6220 B"
   }
 ]

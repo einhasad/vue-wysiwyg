@@ -6,7 +6,7 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/heading.js": "{ heading }"
     },
-    "limit": "5610 B"
+    "limit": "5760 B"
   },
   {
     "name": "core + lists",
@@ -15,6 +15,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/lists.js": "{ lists }"
     },
-    "limit": "6280 B"
+    "limit": "6390 B"
   }
 ]

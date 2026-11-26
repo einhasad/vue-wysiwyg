@@ -6,6 +6,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/history.js": "{ history }"
     },
-    "limit": "5490 B"
+    "limit": "5670 B"
   }
 ]

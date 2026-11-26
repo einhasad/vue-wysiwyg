@@ -3,6 +3,6 @@
     "name": "sanitize",
     "path": "dist/sanitize/index.js",
     "import": "{ sanitize }",
-    "limit": "1690 B"
+    "limit": "1820 B"
   }
 ]

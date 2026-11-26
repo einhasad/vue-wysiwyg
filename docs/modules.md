@@ -31,8 +31,8 @@ General rules:
 - Commands work only on the part of the selection inside the editor; nodes outside the editor root are never changed.
 - The editor root is a `role="textbox"` named by `label` (`createEditor`) or by `label`/`labelledby`
   (`<WysiwygEditor>`); without either it is named `Rich text editor`, so it is never an unnamed textbox.
-- Sizes are size-limit measurements (esbuild, minified, gzip) of `createEditor` plus the module. Core alone is 4.97 kB,
-  under 5 kB.
+- Sizes are size-limit measurements (esbuild, minified, gzip) of `createEditor` plus the module. Core alone is about
+  5 kB (5.2 kB).
 
 ## starterKit
 
@@ -51,7 +51,7 @@ export const modules = starterKit({
 })
 ```
 
-Size: core + `starterKit()` 8.9 kB.
+Size: core + `starterKit()` 9.4 kB.
 
 ## bold, italic, underline
 
@@ -67,8 +67,8 @@ Size: core + `starterKit()` 8.9 kB.
   Enter left inside bold) types outside it. Stored marks are dropped when the caret moves. `isActive` is true when the
   caret, or all selected text, is inside the mark, or when the mark is stored for the caret.
 - `b` and `i` in pasted or loaded HTML become `strong` and `em`.
-- Size: core + `bold` 5.9 kB. The marks helper is shared, so `italic` next to `bold` adds about 0.03 kB; core +
-  `underline` alone is 5.9 kB.
+- Size: core + `bold` 6.1 kB. The marks helper is shared, so `italic` next to `bold` adds about 0.02 kB; core +
+  `underline` alone is 6.1 kB.
 
 ## heading
 
@@ -89,7 +89,7 @@ export const headings = heading({ levels: [2, 3] })
 - `editor.isActive('heading', 2)` is true when the selected lines are `h2`.
 - Keys: `Mod-Alt-1` to `Mod-Alt-6` (allowed levels only).
 - Pasted or loaded headings of a level outside `levels` become paragraphs.
-- Size: core + `heading` 5.5 kB.
+- Size: core + `heading` 5.7 kB.
 
 ## lists
 
@@ -106,7 +106,7 @@ export const headings = heading({ levels: [2, 3] })
   outdented (outside a list), Tab keeps its native behavior and moves the focus, so a list is never a keyboard trap.
 - Enter in an empty item leaves the list (or one nesting level). Backspace at the start of the first item lifts it out
   of the list.
-- Size: core + `lists` 6.2 kB.
+- Size: core + `lists` 6.4 kB.
 
 ## link
 
@@ -144,7 +144,7 @@ export const links = link({
   URL on a caret inside it gives it that `href`; with `null` it is unwrapped.
 - Keys: `Mod-k` calls `onShortcut`. `EditorToolbar` from `./theme` handles `Mod-k` itself and opens its link popover.
 - The browser `insertLink` input type is routed to the `link` command.
-- Size: core + `link` 5.8 kB.
+- Size: core + `link` 6.1 kB.
 
 ## history
 
@@ -171,7 +171,7 @@ export const undoRedo = history({ depth: 100, groupDelay: 500 })
 - Undo and redo emit `update` once, like any other command.
 - Undo and redo are disabled while an IME composition is in progress.
 - Without this module, `undo` and `redo` do nothing.
-- Size: core + `history` 5.4 kB.
+- Size: core + `history` 5.6 kB.
 
 ## paste
 
@@ -186,7 +186,7 @@ export const undoRedo = history({ depth: 100, groupDelay: 500 })
 - Plain text with blank lines becomes paragraphs, with single line breaks as `br`.
 - `Mod-Shift-v` pastes plain text only.
 - A pasted or dropped `text/uri-list` without `text/html` becomes a link through `safeUrl`, when `link` is used.
-- Size: core + `paste` 5.9 kB.
+- Size: core + `paste` 6.2 kB.
 
 ## placeholder
 
@@ -206,7 +206,7 @@ export const hint = placeholder({ text: 'Write something', emptyClass: 'is-empty
   empty heading the theme draws it at the heading's font size.
 - The class is removed while an IME composition runs and checked again when it ends.
 - No commands or keys.
-- Size: core + `placeholder` 5.1 kB.
+- Size: core + `placeholder` 5.3 kB.
 
 ## characterCount
 
@@ -226,7 +226,8 @@ editor.on('update', () => {
 | ------- | ------ | ---------- |
 | `limit` | number | `Infinity` |
 
-- `count(editor?)` returns the number of characters (`editor.textLength()`), and `words(editor?)` the number of words.
+- `count(editor?)` returns the number of characters (`editor.textLength()`) in UTF-16 code units, like `maxlength` and
+  `String.length`, so an emoji counts 2; `words(editor?)` returns the number of words.
   Without an argument they count the editor the module was set up with last; pass the editor when one `characterCount`
   instance serves several editors.
 - Typing that would go over `limit` is blocked, and pasted text or HTML is cut at the limit (never inside a surrogate
@@ -234,7 +235,7 @@ editor.on('update', () => {
   composition and the composition leaves no undo step.
 - Without `limit` it only counts.
 - No commands or keys.
-- Size: core + `characterCount` 5.5 kB.
+- Size: core + `characterCount` 5.7 kB.
 
 ## markdownShortcuts
 
@@ -259,7 +260,7 @@ shortcut works only when the matching module is used.
 | `*text*`       | italic text | `italic` |
 
 The marker characters are removed. Text typed right after an applied mark continues outside the mark. Undo
-(`history`) reverts a shortcut. Size: core + `markdownShortcuts` 5.6 kB.
+(`history`) reverts a shortcut. Size: core + `markdownShortcuts` 5.8 kB.
 
 ## Writing a module
 
@@ -310,14 +311,14 @@ A module can also:
 Change the DOM only inside `editor.transact(fn)` or a command, so normalization, history and the `update` event run.
 A change made outside them through `editor.setHTML(html)` counts as an outside change and clears the undo history; use
 `editor.setHTML(html, { history: true })` to record it. Tag and attribute names are validated: event handlers,
-`style`, `srcdoc`, `srcset` and `formaction` can not be allowed.
+`style`, `srcdoc`, `srcset` and `formaction` cannot be allowed.
 
 Schema rules:
 
 - `href`, `src` and `action` are always URL-checked with `safeUrl` against the editor's `urlSchemes`, even when a module
   does not list them in `urlAttrs`. List any other URL attribute in `urlAttrs`.
 - When several modules contribute the same tag, the rules merge: `attrs` and `urlAttrs` are joined, the `kind` of the
-  later module wins, and `fixedAttrs` of the earlier module win. A later module can therefore not drop the fixed `rel`
+  later module wins, and `fixedAttrs` of the earlier module win. A later module therefore cannot drop the fixed `rel`
   of `link` or turn off the URL check of `a`.
 
 ### Helpers

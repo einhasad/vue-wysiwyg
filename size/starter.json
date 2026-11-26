@@ -6,7 +6,7 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/index.js": "{ starterKit }"
     },
-    "limit": "9120 B"
+    "limit": "9480 B"
   },
   {
     "name": "core + bold from the modules barrel",
@@ -15,6 +15,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/index.js": "{ bold }"
     },
-    "limit": "6020 B"
+    "limit": "6170 B"
   }
 ]

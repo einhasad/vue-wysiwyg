@@ -10,7 +10,7 @@ Tiny, modular, XSS-safe WYSIWYG editor for Vue 3 with a headless core and Markdo
 
 ## Why
 
-- **Small**: the headless core is 4.97 kB gzipped (under 5 kB), a typical editor (core + `starterKit`) is 8.9 kB,
+- **Small**: the headless core is about 5 kB gzipped (5.2 kB), a typical editor (core + `starterKit`) is 9.4 kB,
   and modules you do not import cost 0 bytes. Every size is gated in CI.
 - **Safe**: all HTML that reaches the live editor DOM (initial content, `setHTML`, paste, drop, undo) goes through an
   allow-list sanitizer that rebuilds fresh nodes. Every link passes one URL policy.
@@ -69,8 +69,15 @@ const modules = starterKit({
 ```
 
 `WysiwygEditor` props: `v-model` (string, `''` when empty), `modules`, `format` and `sanitizer` (read once on mount),
-`readonly`, `label` (the accessible name) and `name` (renders a hidden input for native form posts). It emits `focus`
-and `blur` and exposes `editor`. An echoed `v-model` value does not reset the content, so the caret never jumps.
+`readonly`, `label` (the accessible name), `labelledby` (the id of the element that names the editor; wins over
+`label`) and `name` (renders a hidden input for native form posts). It emits `focus` and `blur` and exposes `editor`.
+An echoed `v-model` value does not reset the content, so the caret never jumps.
+
+`v-model` is updated only after a user edit. Until then it keeps the string you passed in, while the editor and the
+hidden input hold the sanitized, normalized HTML (for example every link gets its fixed
+`rel="noopener noreferrer nofollow"`, and an `onclick` is gone). Save `editor.getValue()` or the hidden input value if
+you need the normalized form, and always sanitize stored HTML where you render it (see
+[Security](#security-sanitize-where-html-is-rendered)).
 
 ## Quick start: headless
 
@@ -118,10 +125,10 @@ editor.exec('bold')
 editor.destroy()
 ```
 
-Editor API: `getHTML`/`setHTML(html, { history })`, `getValue`/`setValue(value, { history })` (in the editor `format`;
-without `history: true` an outside change clears undo/redo), `isEmpty`, `textLength`,
-`exec(name, arg)`, `can(name)`, `isActive(name, arg)`, `transact(fn)`, `selection.save`/`restore`, `setReadonly`,
-`focus`, `on(event, listener)` (`update`, `selection`, `focus`, `blur`, `keydown`, `beforeChange`, `readonly`,
+Editor API: `getHTML`/`setHTML(html, { history })`, `getValue`/`setValue(value, { history })` (in the editor `format`:
+`htmlFormat` from the package root by default, or `markdownFormat`; without `history: true` an outside change clears
+undo/redo), `isEmpty`, `textLength` (UTF-16 code units, like `String.length`), `exec(name, arg)`, `can(name)`,
+`isActive(name, arg)`, `transact(fn)`, `selection.save`/`restore`, `setReadonly`, `focus`, `on(event, listener)` (`update`, `selection`, `focus`, `blur`, `keydown`, `beforeChange`, `readonly`,
 `destroy`) and `destroy`. Command names and arguments are typed: `exec('heading', 2)` compiles, `exec('nope')` does not.
 
 ## Modules
@@ -133,28 +140,28 @@ Import from the `@einhasad-vue/vue-wysiwyg/modules` barrel or one file at a time
 
 | Module                           | Commands and keys                                                            | Core + module, gzip     |
 | -------------------------------- | ---------------------------------------------------------------------------- | ----------------------- |
-| `bold()`                         | `bold`, `Mod-b`                                                              | 5.9 kB                  |
-| `italic()`                       | `italic`, `Mod-i`                                                            | +0.03 kB next to `bold` |
-| `underline()`                    | `underline`, `Mod-u`                                                         | 5.9 kB                  |
-| `heading({ levels })`            | `heading` (level 1-6), `Mod-Alt-1` to `Mod-Alt-6`                            | 5.5 kB                  |
-| `lists({ types })`               | `bulletList`, `orderedList`, `indentList`, `outdentList`, `Tab`, `Shift-Tab` | 6.2 kB                  |
-| `link({ target, onShortcut })`   | `link` (a URL, or `null` to remove), `Mod-k`                                 | 5.8 kB                  |
-| `history({ depth, groupDelay })` | `undo`, `redo`, `Mod-z`, `Mod-Shift-z`, `Mod-y`                              | 5.4 kB                  |
-| `paste()`                        | Word and Google Docs cleanup, `Mod-Shift-v` plain paste, URL to link         | 5.9 kB                  |
-| `placeholder({ text })`          | `data-placeholder`, `aria-placeholder`, `is-empty` class                     | 5.1 kB                  |
-| `characterCount({ limit })`      | `count()`, `words()`; blocks typing and truncates paste over `limit`         | 5.5 kB                  |
-| `markdownShortcuts()`            | `# `, `- `, `1. `, `**bold**`, `*italic*` while typing                       | 5.6 kB                  |
+| `bold()`                         | `bold`, `Mod-b`                                                              | 6.1 kB                  |
+| `italic()`                       | `italic`, `Mod-i`                                                            | +0.02 kB next to `bold` |
+| `underline()`                    | `underline`, `Mod-u`                                                         | 6.1 kB                  |
+| `heading({ levels })`            | `heading` (level 1-6), `Mod-Alt-1` to `Mod-Alt-6`                            | 5.7 kB                  |
+| `lists({ types })`               | `bulletList`, `orderedList`, `indentList`, `outdentList`, `Tab`, `Shift-Tab` | 6.4 kB                  |
+| `link({ target, onShortcut })`   | `link` (a URL, or `null` to remove), `Mod-k`                                 | 6.1 kB                  |
+| `history({ depth, groupDelay })` | `undo`, `redo`, `Mod-z`, `Mod-Shift-z`, `Mod-y`                              | 5.6 kB                  |
+| `paste()`                        | Word and Google Docs cleanup, `Mod-Shift-v` plain paste, URL to link         | 6.2 kB                  |
+| `placeholder({ text })`          | `data-placeholder`, `aria-placeholder`, `is-empty` class                     | 5.3 kB                  |
+| `characterCount({ limit })`      | `count()`, `words()`; blocks typing and truncates paste over `limit`         | 5.7 kB                  |
+| `markdownShortcuts()`            | `# `, `- `, `1. `, `**bold**`, `*italic*` while typing                       | 5.8 kB                  |
 
 | Entry                                | gzip    |
 | ------------------------------------ | ------- |
-| core `createEditor`                  | 4.97 kB |
-| core + `starterKit()`                | 8.9 kB  |
-| core + `./vue`                       | 5.7 kB  |
-| core + `./vue` + `./theme`           | 7.2 kB  |
-| `theme.css`                          | 0.8 kB  |
-| `./sanitize` `sanitize`              | 1.7 kB  |
+| core `createEditor`                  | 5.2 kB  |
+| core + `starterKit()`                | 9.4 kB  |
+| core + `./vue`                       | 5.9 kB  |
+| core + `./vue` + `./theme`           | 7.5 kB  |
+| `theme.css`                          | 1.0 kB  |
+| `./sanitize` `sanitize`              | 1.8 kB  |
 | `./markdown` `mdToHtml` + `htmlToMd` | 2.4 kB  |
-| everything                           | 14.3 kB |
+| everything                           | 14.9 kB |
 
 Sizes are measured with size-limit (esbuild, minified, gzip, `vue` excluded). Options, commands, keys and behavior of
 every module are in [docs/modules.md](./docs/modules.md), including how to write your own with `defineModule`.
@@ -228,23 +235,27 @@ after it. The threat model, the sanitizer guarantees and how to report a vulnera
 
 ## Rendering stored HTML
 
-The output of `getHTML` is meant to be rendered the way the editor shows it. Three rules keep the page and the editor
+The output of `getHTML` is meant to be rendered the way the editor shows it. These rules keep the page and the editor
 the same:
 
 - **Sanitize before `v-html`/`innerHTML`** with the schema of the editor that wrote the HTML (see the section above).
   Elements outside the schema are unwrapped and their text kept; `div` and block containers the schema does not allow
   (`section`, `article`, `blockquote`, `pre`, `figure`, `dt`/`dd`, table cells, headings and list items without their
   module, and similar) become `p`, `b` becomes `strong` and `i` becomes `em`; a wrapper around paragraphs is removed so
-  the paragraphs stay separate.
+  the paragraphs stay separate. `script`, `style`, `iframe`, form controls (`button`, `input`, `textarea`, `select`),
+  SVG, MathML and the other elements listed in [SECURITY.md](./SECURITY.md#sanitizer-guarantees) are removed with
+  their content.
 - **Whitespace**: the editor root uses `white-space: pre-wrap`, so spaces the user typed are kept, including double
   spaces and spaces at the end of a line. Render the output with the same rule, or double spaces collapse on the page.
   Pretty-printed source HTML is not affected: when HTML enters the editor (initial content, `setHTML`, paste), a
   whitespace run that contains a line break becomes one space, and it is removed at the start and end of a block.
-- **Links**: `rel="noopener noreferrer nofollow"` is a fixed attribute of every link and can not be removed by
+- **Links**: `rel="noopener noreferrer nofollow"` is a fixed attribute of every link and cannot be removed by
   content. `link({ target: '_blank' })` (or `starterKit({ link: { target: '_blank' } })`) adds a fixed `target` to
   every link; without it a `target` in stored HTML is dropped. A link whose URL `safeUrl` rejects keeps its text and
   its fixed attributes but loses `href` (`<a rel="…">text</a>`); it is not a link, and `theme.css` shows it as plain
   text.
+- **Empty lines** can keep the mark the caret had (`<p><strong><br></strong></p>`): the editor uses it to keep bold on
+  after Enter. It renders as an empty line.
 
 ```ts
 import { createEditor } from '@einhasad-vue/vue-wysiwyg'
@@ -260,6 +271,26 @@ export function renderStored(element: HTMLElement, storedHtml: string): void {
 
 sanitize('<div><p>a</p><p>b</p></div>', { schema: editor.schema }) // '<p>a</p><p>b</p>'
 sanitize('<section>Steel</section><blockquote>bumper</blockquote>', { schema: editor.schema }) // '<p>Steel</p><p>bumper</p>'
+```
+
+Lower-level exports for the same pipeline:
+
+- `sanitizeToFragment(html, { schema })` from `./sanitize` is `sanitize` returning a `DocumentFragment` instead of a
+  string.
+- `@einhasad-vue/vue-wysiwyg/normalize` exports `normalizeHTML(html, schema)`, which sanitizes and normalizes HTML the
+  way the editor stores it (`''` when empty), and `isEmptyHTML(html)`, which tells whether HTML has no visible content.
+  `normalizeElement(root, schema)` normalizes a live element in place and returns whether it changed anything, and
+  `isEmptyNode(node)` is `isEmptyHTML` for an element or a fragment.
+
+```ts
+import { starterKit } from '@einhasad-vue/vue-wysiwyg/modules'
+import { isEmptyHTML, normalizeHTML } from '@einhasad-vue/vue-wysiwyg/normalize'
+import { createSchema } from '@einhasad-vue/vue-wysiwyg/sanitize'
+
+const schema = createSchema(starterKit())
+
+normalizeHTML('<div>a<b>b</b></div>', schema) // '<p>a<strong>b</strong></p>'
+isEmptyHTML('<p><br></p>') // true
 ```
 
 ## SSR and Nuxt
@@ -308,6 +339,10 @@ Dark mode follows `prefers-color-scheme`. `.vw-dark` on the editor, or `.dark` o
 ancestor, forces it; `.vw-light` opts out of the system dark mode. Toolbar labels come from `defaultMessages` and are
 replaced through the `messages` prop (i18n). Icons are replaced through the `#icon` slot.
 
+`LinkPopover` from `./theme` is the link form `EditorToolbar` opens, for use in a toolbar of your own: props `editor`
+and `messages` (a complete `EditorMessages`, such as `defaultMessages`), and a `close` event after apply, remove or
+cancel. Render it while the selection to link is in the editor; it saves that selection when it is created.
+
 ## Accessibility
 
 - The editor root is `role="textbox"` with `aria-multiline`, `aria-label` (from `label`; "Rich text editor" when no
@@ -336,7 +371,7 @@ composing.
 
 | Editor (gzip, typical setup) | Model                  | Sanitizer built in      | Markdown in/out | Vue 3 binding | License      |
 | ---------------------------- | ---------------------- | ----------------------- | --------------- | ------------- | ------------ |
-| **vue-wysiwyg** (8.9 kB)     | DOM + schema normalize | allow-list rebuild, URL | built in        | official      | MIT          |
+| **vue-wysiwyg** (9.4 kB)     | DOM + schema normalize | allow-list rebuild, URL | built in        | official      | MIT          |
 | Tiptap 3 (124 kB)            | ProseMirror document   | schema only             | extension       | official      | MIT          |
 | Lexical (83 kB)              | own editor state       | node types only         | package         | community     | MIT          |
 | Quill 2 (60 kB)              | Delta and blots        | format allow-list       | no              | community     | BSD-3-Clause |

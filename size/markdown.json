@@ -12,6 +12,6 @@
       "dist/index.js": "{ createEditor }",
       "dist/modules/markdown-shortcuts.js": "{ markdownShortcuts }"
     },
-    "limit": "5720 B"
+    "limit": "5850 B"
   }
 ]

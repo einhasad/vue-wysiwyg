@@ -72,6 +72,7 @@ Emphasis follows the CommonMark flanking rules. `_` does not work inside words (
 | Setext headings (`===` / `---` underlines), indented code                                                         | paragraph text                                                 |
 | Tables, task lists, strikethrough, footnotes, reference links                                                     | text                                                           |
 | HTML entities such as `&amp;`                                                                                     | shown as written: `&amp;` stays `&amp;`                        |
+| A different bullet (`-`, `*`, `+`) or delimiter (`.`, `)`) in the middle of a list                                | continues the same list instead of starting a new one          |
 | Ordered list start numbers                                                                                        | dropped: lists always start at 1                               |
 | Loose lists (blank lines between items)                                                                           | rendered tight; a paragraph inside an item joins the item text |
 | Link destinations with more than 8 nested parentheses                                                             | text                                                           |
